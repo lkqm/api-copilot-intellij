@@ -1,0 +1,35 @@
+<idea-plugin>
+    <id>apicopilot</id>
+    <name>API Copilot</name>
+    <vendor url="https://github.com/jetplugins">Jetplugins</vendor>
+    <description><![CDATA[
+        Integrating API documentation into the IDE<br>
+        集成API文档到IDE<br>
+    ]]></description>
+
+    <!-- please see https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html for description -->
+    <idea-version since-build="211.6693.111"/>
+
+    <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
+       on how to target different products -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+        <searchEverywhereContributor implementation="apicopilot.search.ApiSearchEverywhereContributorFactory"/>
+        <toolWindow id="apicopilot.ApiToolWindow" factoryClass="apicopilot.window.ApiToolWindowFactory" anchor="right"
+                    icon="AllIcons.Toolwindows.Documentation"/>
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+        <action id="apicopilot.GotoApiAction" class="apicopilot.search.GotoApiAction">
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl BACK_SLASH"/>
+        </action>
+
+        <group id="apicopilot.ApiToolWindow.Toolbar">
+            <action class="apicopilot.window.toolbar.RefreshAction"/>
+        </group>
+    </actions>
+
+</idea-plugin>

@@ -1,0 +1,47 @@
+plugins {
+    id 'org.jetbrains.intellij' version '1.13.3'
+}
+
+group 'com.github.jetplugins'
+version '0.0.1'
+java.sourceCompatibility = 1.8
+java.targetCompatibility = 1.8
+compileJava.options.encoding = "UTF-8"
+compileTestJava.options.encoding = "UTF-8"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation('io.swagger.parser.v3:swagger-parser:2.1.16') {
+        exclude group: 'org.slf4j'
+    }
+    implementation('io.swagger.parser.v3:swagger-parser-v3:2.1.16') {
+        exclude group: 'org.slf4j'
+    }
+
+
+    // lombok
+    compileOnly 'org.projectlombok:lombok:1.18.26'
+    annotationProcessor 'org.projectlombok:lombok:1.18.26'
+    testCompileOnly 'org.projectlombok:lombok:1.18.26'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.26'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.0'
+}
+
+// See https://github.com/JetBrains/gradle-intellij-plugin/
+intellij {
+    version = '2021.1'
+    sandboxDir = "${project.rootDir}/.sandbox"
+    updateSinceUntilBuild = false
+}
+patchPluginXml {
+    changeNotes = """Initial commit"""
+}
+
+test {
+    useJUnitPlatform()
+}
