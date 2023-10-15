@@ -1,9 +1,17 @@
+import proguard.gradle.ProGuardTask
+
+buildscript {
+    dependencies {
+        classpath 'com.guardsquare:proguard-gradle:7.7.0'
+    }
+}
+
 plugins {
-    id 'org.jetbrains.intellij' version '1.13.3'
+    id 'org.jetbrains.intellij' version '1.17.0'
 }
 
 group 'com.github.jetplugins'
-version '0.0.1'
+version '0.1.0'
 java.sourceCompatibility = 1.8
 java.targetCompatibility = 1.8
 compileJava.options.encoding = "UTF-8"
@@ -14,19 +22,21 @@ repositories {
 }
 
 dependencies {
-    implementation('io.swagger.parser.v3:swagger-parser:2.1.16') {
+    implementation 'org.commonmark:commonmark:0.21.0'
+    implementation 'org.commonmark:commonmark-ext-gfm-tables:0.25.0'
+    implementation('io.swagger.parser.v3:swagger-parser:2.1.30') {
         exclude group: 'org.slf4j'
     }
-    implementation('io.swagger.parser.v3:swagger-parser-v3:2.1.16') {
+    implementation('io.swagger.parser.v3:swagger-parser-v3:2.1.30') {
         exclude group: 'org.slf4j'
     }
 
 
     // lombok
-    compileOnly 'org.projectlombok:lombok:1.18.26'
-    annotationProcessor 'org.projectlombok:lombok:1.18.26'
-    testCompileOnly 'org.projectlombok:lombok:1.18.26'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.26'
+    compileOnly 'org.projectlombok:lombok:1.18.38'
+    annotationProcessor 'org.projectlombok:lombok:1.18.38'
+    testCompileOnly 'org.projectlombok:lombok:1.18.38'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.38'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.0'
@@ -34,7 +44,7 @@ dependencies {
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    version = '2021.1'
+    version = '2023.3.2'
     sandboxDir = "${project.rootDir}/.sandbox"
     updateSinceUntilBuild = false
 }
@@ -44,4 +54,26 @@ patchPluginXml {
 
 test {
     useJUnitPlatform()
+}
+
+def proguardOutputJar = layout.buildDirectory.file("libs/$name-$version-proguard.jar")
+tasks.register('proguard', ProGuardTask) {
+    dependsOn tasks.jar
+    configuration file('proguard.pro')
+    injars tasks.jar.archiveFile.get().asFile
+    outjars proguardOutputJar
+
+    if (System.getProperty('java.version').startsWith('1.')) {
+        libraryjars "${System.getProperty('java.home')}/lib/rt.jar"
+    } else {
+        libraryjars "${System.getProperty('java.home')}/jmods/java.base.jmod", jarfilter: '!**.jar', filter: '!module-info.class'
+        libraryjars "${System.getProperty('java.home')}/jmods/java.desktop.jmod", jarfilter: '!**.jar', filter: '!module-info.class'
+        libraryjars "${System.getProperty('java.home')}/jmods/java.datatransfer.jmod", jarfilter: '!**.jar', filter: '!module-info.class'
+    }
+    libraryjars configurations.compileClasspath
+}
+
+buildPlugin {
+    dependsOn proguard
+    from(proguardOutputJar)
 }

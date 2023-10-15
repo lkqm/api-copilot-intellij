@@ -1,10 +1,29 @@
 <idea-plugin>
     <id>apicopilot</id>
     <name>API Copilot</name>
-    <vendor url="https://github.com/jetplugins">Jetplugins</vendor>
+    <vendor url="https://github.com/lkqm">lkqm</vendor>
     <description><![CDATA[
         Integrating API documentation into the IDE<br>
-        集成API文档到IDE<br>
+        Slogan: "Your smart assistant for understanding, navigating, and using APIs — right inside your IDE."<br>
+        <p>
+            <a href="https://github.com/lkqm/api-copilot">GitHub</a>
+        </p>
+        <h3>Features</h3>
+        <ul>
+            <li>Supports OpenAPI, Swagger Hub, Apifox.</li>
+            <li>Documentation preview.</li>
+            <li>Path completion.</li>
+            <li>Jump to documentation from path.</li>
+            <li>More features are developing...</li>
+        </ul>
+
+        <h3>Usages</h3>
+        <ul>
+            <li>Add API document in API tool window.</li>
+            <li>Ctrl + \ to search API.</li>
+            <li>Typed slash '/' in editor while code completion.</li>
+            <li>Ctrl + click jump to API document.</li>
+        </ul>
     ]]></description>
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html for description -->
@@ -15,20 +34,50 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <!-- Add your extensions here -->
-        <searchEverywhereContributor implementation="apicopilot.search.ApiSearchEverywhereContributorFactory"/>
-        <toolWindow id="apicopilot.ApiToolWindow" factoryClass="apicopilot.window.ApiToolWindowFactory" anchor="right"
-                    icon="AllIcons.Toolwindows.Documentation"/>
+        <notificationGroup id="API Copilot" displayType="BALLOON"/>
+
+        <projectService serviceInterface="io.apicopilot.window.ApiView"
+                        serviceImplementation="io.apicopilot.window.ApiViewImpl"/>
+        <!-- 视图窗口 -->
+        <toolWindow id="ApiView" anchor="right" icon="AllIcons.Toolwindows.Documentation" order="last"
+                    factoryClass="io.apicopilot.window.ApiViewToolWindowFactory"/>
+        <!-- 快速搜索 -->
+        <searchEverywhereContributor implementation="io.apicopilot.search.ApiSearchEverywhereContributorFactory"/>
+
+        <!-- 代码提示 -->
+        <completion.contributor language="any" order="first"
+                                implementationClass="io.apicopilot.editor.completion.PathCompletionContributor"/>
+        <completion.confidence language="any" order="before javaSkipAutopopupInStrings"
+                               implementationClass="io.apicopilot.editor.completion.PathCompletionConfidence"/>
+        <lookup.charFilter implementation="io.apicopilot.editor.completion.PathCompletionCharFilter"/>
+        <typedHandler implementation="io.apicopilot.editor.completion.PathCompletionTypedHandler" order="first"/>
+
+        <!-- 路径跳转 -->
+        <psi.referenceContributor language="" implementation="io.apicopilot.editor.reference.PathReferenceContributor"/>
+
+        <!-- 文档 -->
+        <lang.documentationProvider language=""
+                                    implementationClass="io.apicopilot.editor.documentation.ApiDocumentationProvider"/>
     </extensions>
 
     <actions>
         <!-- Add your actions here -->
-        <action id="apicopilot.GotoApiAction" class="apicopilot.search.GotoApiAction">
+        <action id="apicopilot.GotoApiAction" class="io.apicopilot.search.GotoApiAction">
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl BACK_SLASH"/>
         </action>
 
-        <group id="apicopilot.ApiToolWindow.Toolbar">
-            <action class="apicopilot.window.toolbar.RefreshAction"/>
+        <group id="ApiViewToolWindowToolbar">
+            <group class="io.apicopilot.window.action.AddAction" id="apicopilot.AddAction"/>
+            <action class="io.apicopilot.window.action.RemoveAction"/>
+            <separator/>
+            <action class="io.apicopilot.window.action.RefreshAction"/>
+            <action class="io.apicopilot.window.action.PreviewAction"/>"
+        </group>
+
+        <group id="ApiViewToolbar">
+            <action class="io.apicopilot.window.action.LocateApiAction"/>
+            <reference ref="ExpandAll"/>
+            <reference ref="CollapseAll"/>
         </group>
     </actions>
 
