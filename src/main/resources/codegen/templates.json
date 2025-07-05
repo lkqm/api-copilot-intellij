@@ -1,0 +1,32 @@
+[
+  {
+    "name": "axios",
+    "language": "typescript",
+    "description": "",
+    "files": [
+      {
+        "filename": "api/{{tag}}/api.ts",
+        "template": "templates/typescript/api.hbs"
+      },
+      {
+        "filename": "api/{{tag}}/types.ts",
+        "template": "templates/typescript/types.hbs"
+      }
+    ]
+  },
+  {
+    "name": "Open Feign",
+    "language": "java",
+    "description": "",
+    "files": [
+      {
+        "filename": "{{basePackage}}.client.{{documentKey}}Client.java",
+        "template": "templates/java/api.hbs"
+      },
+      {
+        "filename": "api/{{tag}}/types.ts",
+        "template": "templates/java/types.hbs"
+      }
+    ]
+  }
+]

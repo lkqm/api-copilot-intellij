@@ -1,0 +1,48 @@
+{
+  "languages": [
+    { "language": "Java", "extension": "java" },
+    { "language": "Python", "extension": "py" },
+    { "language": "JavaScript", "extension": "js" },
+    { "language": "TypeScript", "extension": "ts" },
+    { "language": "C", "extension": "c" },
+    { "language": "C++", "extension": "cpp" },
+    { "language": "C#", "extension": "cs" },
+    { "language": "Go", "extension": "go" },
+    { "language": "Rust", "extension": "rs" },
+    { "language": "Swift", "extension": "swift" },
+    { "language": "Kotlin", "extension": "kt" },
+    { "language": "Ruby", "extension": "rb" },
+    { "language": "PHP", "extension": "php" },
+    { "language": "Dart", "extension": "dart" },
+    { "language": "Scala", "extension": "scala" },
+    { "language": "R", "extension": "r" },
+    { "language": "Lua", "extension": "lua" },
+    { "language": "Shell", "extension": "sh" },
+    { "language": "PowerShell", "extension": "ps1" },
+    { "language": "SQL", "extension": "sql" },
+    { "language": "Perl", "extension": "pl" },
+    { "language": "Haskell", "extension": "hs" },
+    { "language": "Julia", "extension": "jl" }
+  ],
+  "model": {
+    "languages": ["C#", "Dart", "Go", "Java", "Kotlin", "Python", "Swift", "TypeScript"]
+  },
+  "request": {
+    "templates": [
+      {"language": "C#", "name": "RestSharep"},
+      {"language": "Dart", "name": "http"},
+      {"language": "Dart", "name": "Dio"},
+      {"language": "Go", "name": "Native"},
+      {"language": "Java", "name": "Java11"},
+      {"language": "Java", "name": "OkHttp"},
+      {"language": "Java", "name": "Apache HttpClient", "template": "codegen/request/java_apache_httpclient.hbs"},
+      {"language": "Java", "name": "RestTemplate"},
+      {"language": "JavaScript", "name": "Fetch"},
+      {"language": "JavaScript", "name": "Axios"},
+      {"language": "JavaScript", "name": "jQuery"},
+      {"language": "Python", "name": "Requests"},
+      {"language": "Swift", "name": "URLSession"},
+      {"language": "Swift", "name": "Alamofire"}
+    ]
+  }
+}

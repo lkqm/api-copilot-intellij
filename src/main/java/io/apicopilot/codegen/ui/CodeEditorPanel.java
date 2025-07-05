@@ -1,0 +1,97 @@
+package io.apicopilot.codegen.ui;
+
+import com.intellij.openapi.Disposable;
+import com.intellij.openapi.command.WriteCommandAction;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.editor.EditorSettings;
+import com.intellij.openapi.editor.ex.EditorEx;
+import com.intellij.openapi.fileTypes.FileType;
+import com.intellij.openapi.fileTypes.FileTypeManager;
+import com.intellij.openapi.project.Project;
+import com.intellij.ui.EditorTextField;
+import com.intellij.ui.JBColor;
+import com.intellij.ui.components.JBScrollBar;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+public class CodeEditorPanel extends JPanel implements Disposable {
+
+    private final Project project;
+    private Editor editor;
+    private String extension = "text";
+
+    public CodeEditorPanel(Project project) {
+        super(new BorderLayout());
+        this.project = project;
+        createEditor("", extension);
+    }
+
+    private void createEditor(String code, String extension) {
+        FileType fileType = FileTypeManager.getInstance().getFileTypeByExtension(extension);
+        Document document = EditorFactory.getInstance().createDocument(code);
+        editor = EditorFactory.getInstance().createEditor(document, project, fileType, true);
+        editor.getSettings().setLineNumbersShown(true);
+        editor.getSettings().setLineMarkerAreaShown(true);
+        editor.getSettings().setFoldingOutlineShown(true);
+
+        EditorSettings settings = editor.getSettings();
+        settings.setLineNumbersShown(true);
+        settings.setLineMarkerAreaShown(true);
+        settings.setFoldingOutlineShown(true);
+        settings.setRightMarginShown(false);
+        settings.setVirtualSpace(false);
+        settings.setWheelFontChangeEnabled(false);
+        settings.setCaretRowShown(false);
+        if(editor instanceof EditorEx) {
+            EditorEx editorEx = (EditorEx) editor;
+            JScrollBar scrollBar = editorEx.getScrollPane().getVerticalScrollBar();
+            scrollBar.setOpaque(false);
+        }
+
+        add(editor.getComponent(), BorderLayout.CENTER);
+    }
+
+    /**
+     * 修改内容
+     */
+    public void setText(String text, String extension) {
+        if (extension.equalsIgnoreCase(this.extension)) {
+            Document document = editor.getDocument();
+            WriteCommandAction.runWriteCommandAction(project, () -> document.setText(text));
+            return;
+        }
+
+        // rebuild editor
+        if (editor != null) {
+            remove(editor.getComponent());
+            EditorFactory.getInstance().releaseEditor(editor);
+        }
+        createEditor(text, extension);
+        this.extension = extension;
+        revalidate();
+        repaint();
+    }
+
+    /**
+     * 获取内容
+     */
+    public String getText() {
+        return editor != null ? editor.getDocument().getText() : "";
+    }
+
+    /**
+     * 释放编辑器资源，防止内存泄漏
+     */
+    @Override
+    public void dispose() {
+        if (editor != null) {
+            EditorFactory.getInstance().releaseEditor(editor);
+            editor = null;
+        }
+    }
+}

@@ -220,4 +220,17 @@ public class OpenApiUtils {
         return schema != null && "array".equals(schema.getType());
     }
 
+    public String getRefName(String ref) {
+        if (ref == null || ref.isEmpty()) {
+            return null;
+        }
+        if (ref.contains("/properties/")) {
+            String[] split = ref.split("/");
+            String refSchema = split[3];
+            ref = ref.substring(ref.lastIndexOf("/") + 1);
+        } else {
+            ref = ref.substring(ref.lastIndexOf("/") + 1);
+        }
+        return ref;
+    }
 }

@@ -1,0 +1,29 @@
+const url = new URL("http://127.0.0.1:8080{{path}}");
+const method = "{{method}}";{{#if queryParameters}}
+{{#each queryParameters}}
+url.searchParams.append("{{this.name}}", "{{this.type}}");{{/each}}{{/if}}{{#if requestBody}}
+{{#eq requestBodyType 'json'}}
+var body = JSON.stringify({{{this.requestBody.jsonExample}}});{{/eq}}{{#eq requestBodyType 'form'}}
+var body = new URLSearchParams();{{#each requestBodyForm}}
+body.append("{{this.name}}", "{{this.type}}");{{/each}}{{/eq}}{{#eq requestBodyType 'form_data'}}
+var body = new FormData();{{#each requestBodyForm}}
+body.append("{{this.name}}", "{{this.type}}");{{/each}}{{/eq}}{{#eq requestBodyType 'binary'}},
+var body = new Blob([]);{{/eq}}
+{{/if}}
+
+var headers = new Headers();{{#eq requestBodyType 'json'}}
+headers.append('Content-Type', 'application/json');{{/eq}}{{#eq requestBodyType 'form'}}
+headers.append('Content-Type', 'application/x-www-form-urlencoded');{{/eq}}{{#each headerParameters}}
+headers.append('{{this.name}}': '{{this.type}}');{{/each}}
+
+const options = {
+  method: method,
+  headers: headers,{{#if requestBody}}
+  body: body,{{/if}}
+  redirect: 'follow'
+};
+
+fetch(url.toString(), options)
+   .then(response => response.text())
+   .then(result => console.log(result))
+   .catch(error => console.log('error', error));

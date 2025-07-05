@@ -1,0 +1,9 @@
+{{#each models}}{{#if this.description}}
+// {{{this.description}}}{{/if}}
+type {{#pascalCase this.targetType}}{{/pascalCase}} struct {
+{{#each this.properties}}{{#if this.description}}
+    // {{{this.description}}}{{/if}}
+    {{#pascalCase this.name}}{{/pascalCase}} {{this.targetType}} `json:"{{this.name}}"`
+{{/each}}
+}
+{{/each}}

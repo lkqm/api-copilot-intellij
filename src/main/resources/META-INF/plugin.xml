@@ -14,6 +14,7 @@
             <li>Documentation preview.</li>
             <li>Path completion.</li>
             <li>Jump to documentation from path.</li>
+            <li>Generate code.</li>
             <li>More features are developing...</li>
         </ul>
 
@@ -23,11 +24,12 @@
             <li>Ctrl + \ to search API.</li>
             <li>Typed slash '/' in editor while code completion.</li>
             <li>Ctrl + click jump to API document.</li>
+            <li>Right-click to generate code.</li>
         </ul>
     ]]></description>
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html for description -->
-    <idea-version since-build="211.6693.111"/>
+    <idea-version since-build="222"/>
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
        on how to target different products -->

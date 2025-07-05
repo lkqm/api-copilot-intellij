@@ -6,6 +6,9 @@
 -keep class io.apicopilot.document.Document { *; }
 -keep class io.apicopilot.document.Document$* { *; }
 
+# model or config
+-keep class io.apicopilot.codegen.model.** { *; }
+
 # plugin.xml
 -keep class io.apicopilot.window.ApiView { *; }
 -keep class io.apicopilot.window.ApiViewImpl { *; }

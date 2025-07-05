@@ -1,0 +1,76 @@
+package main
+
+import (
+    "bytes"
+    "fmt"
+    "io/ioutil"
+    "mime/multipart"
+    "net/http"
+    "net/url"
+    "os"
+    "strings"
+)
+
+func main() {
+    url := url.Parse("http://127.0.0.1:8080{{path}}")
+    method := "{{method}}"{{#if queryParameters}}
+
+    params := url.Values{}{{#each queryParameters}}
+    params.Add("{{this.name}}", "{{this.type}}"){{/each}}
+    url.RawQuery = params.Encode(){{/if}}{{#if requestBody}}
+    {{#eq requestBodyType 'json'}}
+    payload := strings.NewReader(`{{{this.requestBody.jsonExample}}}`){{/eq}}{{#eq requestBodyType 'form'}}
+    form := url.Values{}{{#each requestBodyForm}}
+    form.Add("{{this.name}}", "{{this.type}}"){{/each}}
+    payload := strings.NewReader(form.Encode()){{/eq}}{{#eq requestBodyType 'binary'}}
+    file, err := os.Open("path/to/your/file")
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    defer file.Close()
+    payload := file{{/eq}}{{#eq requestBodyType 'form_data'}}
+    var body bytes.Buffer
+    writer := multipart.NewWriter(&body){{#each requestBodyForm}}{{#neq this.type 'file'}}
+    writer.WriteField("{{this.name}}", "{{this.type}}"){{else}}
+    fileWriter, err := writer.CreateFormFile("{{this.name}}", "file.jpg")
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    file, err := os.Open("/path/to/file.jpg")
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    defer file.Close()
+    io.Copy(fileWriter, file){{/neq}}{{/each}}
+    writer.Close()
+    payload := &body{{/eq}}{{else}}var payload *strings.Reader{{/if}}
+
+    client := &http.Client{}
+    req, err := http.NewRequest(method, url.String(), payload)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }{{#each headerParameters}}
+    req.Header.Add("{{this.name}}", "{{this.type}}"){{/each}}{{#if requestBody}}{{#eq requestBodyType 'json'}}
+    req.Header.Add("Content-Type", "application/json"){{/eq}}{{#eq requestBodyType 'form'}}
+    req.Header.Add("Content-Type", "application/x-www-form-urlencoded"){{/eq}}{{#eq requestBodyType 'binary'}}
+    req.Header.Add("Content-Type", "application/octet-stream"){{/eq}}{{#eq requestBodyType 'form_data'}}
+    req.Header.Add("Content-Type", writer.FormDataContentType()){{/eq}}{{/if}}
+
+    res, err := client.Do(req)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    defer res.Body.Close()
+
+    body, err := ioutil.ReadAll(res.Body)
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    fmt.Println(string(body))
+}

@@ -1,0 +1,8 @@
+{{#each models}}
+class {{#pascalCase this.targetType}}{{/pascalCase}} {
+{{#each this.properties}}{{#if this.description}} 
+    /// {{{this.description}}}{{/if}}
+    {{{this.targetType}}}{{#unless this.required}}?{{/unless}} {{{this.name}}};
+{{/each}}
+}
+{{/each}}

@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
 public class ApiViewToolWindowFactory implements ToolWindowFactory, DumbAware {
 
     public static final String ID = "ApiView";
-    private static final String TOOL_WINDOW_TITLE = "API";
+    private static final String TOOL_WINDOW_TITLE = "APIs";
 
     @Override
     public void init(@NotNull ToolWindow toolWindow) {

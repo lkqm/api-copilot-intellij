@@ -1,0 +1,14 @@
+{{#each models}}{{#if this.description}}
+/**
+ * {{{this.description}}}
+ */{{/if}}
+@Data
+public class {{#pascalCase this.targetType}}{{/pascalCase}} {
+{{#each this.properties}}{{#if this.description}}
+    /**
+     * {{{this.description}}}
+     */{{/if}}
+    private {{{this.targetType}}} {{#camelCase this.name}}{{/camelCase}};
+{{/each}}
+}
+{{/each}}

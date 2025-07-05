@@ -1,0 +1,79 @@
+import Foundation{{#eq requestBodyType 'json'}}
+import UIKit{{/eq}}{{#eq requestBodyType 'binary'}}
+import UIKit{{/eq}}
+
+let urlString = "http://127.0.0.1:8080{{path}}"
+let method = "{{method}}"{{#if queryParameters}}
+
+var components = URLComponents(string: urlString)!
+components.queryItems = [{{#each queryParameters}}
+    URLQueryItem(name: "{{this.name}}", value: "{{this.type}}"),{{/each}}
+]{{/if}}{{#if requestBody}}
+{{#eq requestBodyType 'json'}}
+let jsonData = """
+{{{this.requestBody.jsonExample}}}
+""".data(using: .utf8){{/eq}}{{#eq requestBodyType 'form'}}
+let formData = [{{#each requestBodyForm}}
+    "{{this.name}}": "{{this.type}}",{{/each}}
+]
+let bodyData = formData.compactMap { "\($0.key)=\($0.value)" }.joined(separator: "&").data(using: .utf8){{/eq}}{{#eq requestBodyType 'form_data'}}
+let boundary = "Boundary-\(UUID().uuidString)"
+var bodyData = Data(){{#each requestBodyForm}}
+bodyData.append("--\(boundary)\r\n".data(using: .utf8)!)
+bodyData.append("Content-Disposition: form-data; name=\"{{this.name}}\"\r\n\r\n".data(using: .utf8)!)
+bodyData.append("{{this.type}}\r\n".data(using: .utf8)!){{/each}}
+bodyData.append("--\(boundary)--\r\n".data(using: .utf8)!){{/eq}}{{#eq requestBodyType 'binary'}}
+guard let fileData = NSData(contentsOfFile: "path/to/your/file") else {
+print("Error: Could not read file")
+return
+}
+let bodyData = fileData as Data{{/eq}}
+{{/if}}{{#if headerParameters}}
+
+let headers = [{{#each headerParameters}}
+"{{this.name}}": "{{this.type}}",{{/each}}
+]{{/if}}{{#if queryParameters}}
+guard let url = components.url else {
+    print("Error: Invalid URL")
+    return
+}{{else}}guard let url = URL(string: urlString) else {
+    print("Error: Invalid URL")
+    return
+}{{/if}}
+
+var request = URLRequest(url: url)
+request.httpMethod = method{{#if requestBody}}
+{{#eq requestBodyType 'json'}}
+request.httpBody = jsonData
+request.setValue("application/json", forHTTPHeaderField: "Content-Type"){{/eq}}{{#eq requestBodyType 'form'}}
+request.httpBody = bodyData
+request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type"){{/eq}}{{#eq requestBodyType
+'form_data'}}
+request.httpBody = bodyData
+request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type"){{/eq}}{{#eq
+requestBodyType 'binary'}}
+request.httpBody = bodyData
+request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type"){{/eq}}{{/if}}{{#if headerParameters}}
+
+for (key, value) in headers {
+    request.setValue(value, forHTTPHeaderField: key)
+}{{/if}}
+
+URLSession.shared.dataTask(with: request) { data, response, error in
+    if let error = error {
+        print("Request error: \(error.localizedDescription)")
+    return
+}
+
+guard let httpResponse = response as? HTTPURLResponse else {
+    print("Error: Invalid response")
+    return
+}
+
+if httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 {
+    if let data=data, let responseBody=String(data: data, encoding: .utf8) {
+        print("Response body: \(responseBody)")
+    } else {
+        print("HTTP error: \(httpResponse.statusCode)")
+    }
+}.resume()

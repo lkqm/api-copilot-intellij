@@ -9,7 +9,7 @@ import com.intellij.ui.jcef.JCEFHtmlPanel;
 import io.apicopilot.document.Document;
 import io.apicopilot.model.Request;
 import io.apicopilot.util.MarkdownGenerator;
-import io.apicopilot.util.ResourcesFileUtils;
+import io.apicopilot.util.ResourceUtils;
 import lombok.Getter;
 
 
@@ -41,7 +41,7 @@ public class ApiViewPreviewPane extends JBScrollPane {
     }
 
     public void setRequest(Document document, Request request) {
-        String tpl = ResourcesFileUtils.readResourceFileAsTextWithCache(API_HTML_TPL_FILE);
+        String tpl = ResourceUtils.readAsTextWithCache(API_HTML_TPL_FILE);
         String content = new MarkdownGenerator().generateHtml(request);
         String theme = JBColor.isBright() ? "light" : "dark";
         String html = String.format(tpl, theme, content);

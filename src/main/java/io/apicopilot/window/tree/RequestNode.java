@@ -1,7 +1,11 @@
 package io.apicopilot.window.tree;
 
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.JBMenuItem;
 import com.intellij.openapi.ui.JBPopupMenu;
+import io.apicopilot.codegen.ui.GenerateModelDialog;
+import io.apicopilot.codegen.ui.GenerateRequestDialog;
+import io.apicopilot.codegen.ui.GenerateRequestPanel;
 import io.apicopilot.document.Document;
 import io.apicopilot.model.Request;
 import io.apicopilot.util.ClipboardUtils;
@@ -61,6 +65,23 @@ public class RequestNode extends ApiViewNode<RequestNode.Context> {
         });
         popupMenu.add(copyMarkdownItem);
 
+        // Generate Model Code
+        JMenuItem generateModelItem = new JBMenuItem("Generate Model Code");
+        generateModelItem.addActionListener(actionEvent -> {
+            GenerateModelDialog dialog = new GenerateModelDialog(this.data.getProject(), this.data.getDocument(), this.data.getRequest());
+            dialog.show();
+        });
+        popupMenu.add(generateModelItem);
+
+        // Generate Request Code
+        JMenuItem generateRequestItem = new JBMenuItem("Generate Request Code");
+        generateRequestItem.addActionListener(actionEvent -> {
+            GenerateRequestDialog dialog = new GenerateRequestDialog(this.data.getProject(), this.data.getDocument(), this.data.getRequest());
+            dialog.show();
+        });
+        popupMenu.add(generateRequestItem);
+
+
         return popupMenu;
     }
 
@@ -87,6 +108,9 @@ public class RequestNode extends ApiViewNode<RequestNode.Context> {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class Context {
+
+        @NonNull
+        private Project project;
 
         @NonNull
         private Request request;

@@ -11,7 +11,7 @@ plugins {
 }
 
 group 'com.github.jetplugins'
-version '0.1.0'
+version '0.2.0'
 java.sourceCompatibility = 1.8
 java.targetCompatibility = 1.8
 compileJava.options.encoding = "UTF-8"
@@ -30,6 +30,8 @@ dependencies {
     implementation('io.swagger.parser.v3:swagger-parser-v3:2.1.30') {
         exclude group: 'org.slf4j'
     }
+    implementation "com.github.jknack:handlebars:4.4.0"
+    implementation("com.google.code.gson:gson:2.13.1")
 
 
     // lombok

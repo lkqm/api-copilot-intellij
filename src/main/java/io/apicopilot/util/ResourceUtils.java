@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 资源文件工具类
  */
 @UtilityClass
-public class ResourcesFileUtils {
+public class ResourceUtils {
 
     private static final Map<String, String> RESOURCES_CACHE = new ConcurrentHashMap<>();
 
@@ -22,16 +22,16 @@ public class ResourcesFileUtils {
      * Read resource file as text with cache.
      */
     @SneakyThrows
-    public static String readResourceFileAsTextWithCache(String file) {
-        return RESOURCES_CACHE.computeIfAbsent(file, ResourcesFileUtils::readResourceFileAsText);
+    public static String readAsTextWithCache(String file) {
+        return RESOURCES_CACHE.computeIfAbsent(file, ResourceUtils::readAsText);
     }
 
     /**
      * Read resource file as text.
      */
     @SneakyThrows
-    public static String readResourceFileAsText(String relativeFile) {
-        InputStream is = ResourcesFileUtils.class.getClassLoader().getResourceAsStream(relativeFile);
+    public static String readAsText(String relativeFile) {
+        InputStream is = ResourceUtils.class.getClassLoader().getResourceAsStream(relativeFile);
         if (is == null) {
             throw new FileNotFoundException("Not found file: " + relativeFile);
         }

@@ -1,0 +1,14 @@
+{{#each models}}{{#if this.description}}
+/// <summary>
+/// {{{this.description}}}
+/// </summary>{{/if}}
+public class {{#pascalCase this.targetType}}{{/pascalCase}}
+{
+{{#each this.properties}}{{#if this.description}}
+    /// <summary>
+    /// {{{this.description}}}
+    /// </summary>{{/if}}
+    public {{{this.targetType}}}{{#unless this.required}}?{{/unless}} {{#pascalCase this.name}}{{/pascalCase}} { get; set; };
+{{/each}}
+}
+{{/each}}

@@ -1,0 +1,38 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:dio/dio.dart';
+
+final dio = Dio();
+var url = 'http://127.0.0.1:8080{{path}}';{{#if queryParameters}}
+var queryParams = { {{#each queryParameters}}
+'{{this.name}}': '{{this.type}}'{{#unless @last}},{{/unless}}{{/each}}
+};{{/if}}
+var headers = { {{#each headerParameters}}
+'{{this.name}}': '{{this.type}}'{{#unless @last}},{{/unless}}{{/each}}
+};
+{{#if requestBody}}{{#eq requestBodyType 'json'}}
+final data = {{{this.requestBody.jsonExample}}};
+headers['Content-Type'] = 'application/json';{{/eq}}{{#eq requestBodyType 'form'}}
+final data = { {{#each requestBodyForm}}
+'{{this.name}}': '{{this.type}}'{{#unless @last}},{{/unless}}{{/each}}
+};
+headers['Content-Type'] = 'application/x-www-form-urlencoded';{{/eq}}{{#eq requestBodyType 'binary'}}
+final file = File('path/to/your/file');
+final data = await file.readAsBytes();
+headers['Content-Type'] = 'application/octet-stream';{{/eq}}{{#eq requestBodyType 'form_data'}}
+final formData = FormData.fromMap({ {{#each requestBodyForm}}{{#neq this.type 'file'}}
+  '{{this.name}}': '{{this.type}}'{{#unless @last}},{{/unless}}{{else}}
+  '{{this.name}}': await MultipartFile.fromFile('/path/to/file.jpg', filename: 'file.jpg'){{#unless @last}},{{/unless}}{{/neq}}{{/each}}
+});
+final data = formData;{{/eq}}{{/if}}
+final response = await dio.request(
+  url,
+  options: Options(
+    method: '{{method}}',
+    headers: headers,
+  ),{{#if queryParameters}}
+  queryParameters: queryParams,{{/if}}{{#if requestBody}}
+  data: data,{{/if}}
+);
+print('response http status: ${response.statusCode}');
+print('response body: ${response.data}');

@@ -1,0 +1,89 @@
+import Alamofire{{#eq requestBodyType 'json'}}
+import Foundation{{/eq}}{{#eq requestBodyType 'binary'}}
+import Foundation{{/eq}}
+
+let urlString = "http://127.0.0.1:8080{{path}}"
+let method = HTTPMethod.{{#lowerCase method}}{{/lowerCase}}{{#if queryParameters}}
+
+let parameters: [String: String] = [{{#each queryParameters}}
+    "{{this.name}}": "{{this.type}}",{{/each}}
+]{{/if}}{{#if requestBody}}
+{{#eq requestBodyType 'json'}}
+let jsonParameters: [String: Any] = {{{this.requestBody.jsonExample}}}{{/eq}}{{#eq requestBodyType 'form'}}
+let formParameters: [String: String] = [{{#each requestBodyForm}}
+    "{{this.name}}": "{{this.type}}",{{/each}}
+]{{/eq}}{{#eq requestBodyType 'form_data'}}
+let multipartFormData: [String: String] = [{{#each requestBodyForm}}
+    "{{this.name}}": "{{this.type}}",{{/each}}
+]{{/eq}}{{#eq requestBodyType 'binary'}}
+guard let fileURL = URL(string: "path/to/your/file") else {
+    print("Error: Invalid file path")
+    return
+}{{/eq}}{{/if}}{{#if headerParameters}}
+
+let headers: HTTPHeaders = [{{#each headerParameters}}
+    "{{this.name}}": "{{this.type}}",{{/each}}
+]{{/if}}{{#if requestBody}}{{#eq requestBodyType 'json'}}
+AF.request(
+    urlString,
+    method: method,{{#if queryParameters}}
+    parameters: parameters,{{/if}}
+    encoding: JSONEncoding.default,{{#if headerParameters}}
+    headers: headers{{/if}}
+).responseJSON { response in
+    switch response.result {
+        case .success(let value):
+            print("Response body: \(value)")
+        case .failure(let error):
+            print("Request error: \(error.localizedDescription)")
+    }
+}{{/eq}}{{#eq requestBodyType 'form'}}
+AF.request(
+    urlString,
+    method: method,{{#if queryParameters}}
+    parameters: parameters,{{/if}}
+    encoding: URLEncoding.default,{{#if headerParameters}}
+    headers: headers{{/if}}
+).responseString { response in
+    switch response.result {
+        case .success(let value):
+            print("Response body: \(value)")
+        case .failure(let error):
+            print("Request error: \(error.localizedDescription)")
+    }
+}{{/eq}}{{#eq requestBodyType 'form_data'}}
+AF.upload(multipartFormData: { multipartFormData in
+    for (key, value) in multipartFormData {
+        multipartFormData.append(value.data(using: .utf8)!, withName: key)
+    }
+}, to: urlString, method: method{{#if headerParameters}}, headers: headers{{/if}})
+.responseString { response in
+switch response.result {
+case .success(let value):
+print("Response body: \(value)")
+case .failure(let error):
+print("Request error: \(error.localizedDescription)")
+}
+}{{/eq}}{{#eq requestBodyType 'binary'}}
+AF.upload(fileURL, to: urlString, method: method{{#if headerParameters}}, headers: headers{{/if}})
+.responseString { response in
+    switch response.result {
+        case .success(let value):
+            print("Response body: \(value)")
+        case .failure(let error):
+            print("Request error: \(error.localizedDescription)")
+}
+}{{/eq}}{{else}}
+AF.request(
+    urlString,
+    method: method,{{#if queryParameters}}
+    parameters: parameters,{{/if}}{{#if headerParameters}}
+    headers: headers{{/if}}
+).responseString { response in
+    switch response.result {
+        case .success(let value):
+            print("Response body: \(value)")
+        case .failure(let error):
+            print("Request error: \(error.localizedDescription)")
+    }
+}{{/if}}

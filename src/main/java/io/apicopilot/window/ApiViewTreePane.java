@@ -189,6 +189,7 @@ public class ApiViewTreePane extends JBScrollPane {
                 pathItem.readOperationsMap().forEach((method, operation) -> {
                     Request request = new Request(path, method.name(), operation);
                     RequestNode.Context requestContext = RequestNode.Context.builder()
+                            .project(project)
                             .document(document)
                             .request(request)
                             .build();

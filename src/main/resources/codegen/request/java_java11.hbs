@@ -1,0 +1,51 @@
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.io.IOException;
+import java.time.Duration;{{#eq requestBodyType 'form_data'}}
+import java.nio.file.Path;
+import java.nio.file.Paths;{{/eq}}
+
+HttpClient client = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(30))
+        .build();
+
+String url = "http://127.0.0.1:8080{{path}}{{#if queryParameters}}?{{#each queryParameters}}{{this.name}}={{this.type}}{{#unless @last}}&{{/unless}}{{/each}}{{/if}}";
+String method = "{{method}}";
+
+HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+        .uri(URI.create(url))
+        .timeout(Duration.ofSeconds(30));{{#if requestBody}}{{#eq requestBodyType 'json'}}
+
+String jsonString = """
+{{{this.requestBody.jsonExample}}}
+""";
+requestBuilder.method(method, HttpRequest.BodyPublishers.ofString(jsonString))
+.header("Content-Type", "application/json");{{/eq}}{{#eq requestBodyType 'form'}}
+
+StringBuilder formData = new StringBuilder();{{#each requestBodyForm}}
+formData.append("{{this.name}}={{this.type}}{{#unless @last}}&{{/unless}}");{{/each}}
+requestBuilder.method(method, HttpRequest.BodyPublishers.ofString(formData.toString()))
+.header("Content-Type", "application/x-www-form-urlencoded");{{/eq}}{{#eq requestBodyType 'form_data'}}
+
+String boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
+StringBuilder multipartData = new StringBuilder();{{#each requestBodyForm}}
+multipartData.append("--").append(boundary).append("\r\n");
+multipartData.append("Content-Disposition: form-data; name=\"{{this.name}}\"\r\n\r\n");
+multipartData.append("{{this.type}}").append("\r\n");{{/each}}
+multipartData.append("--").append(boundary).append("--\r\n");
+
+requestBuilder.method(method, HttpRequest.BodyPublishers.ofString(multipartData.toString()))
+.header("Content-Type", "multipart/form-data; boundary=" + boundary);{{/eq}}{{#eq requestBodyType 'binary'}}
+
+Path filePath = Paths.get("path/to/your/file");
+requestBuilder.method({{method}}, HttpRequest.BodyPublishers.ofFile(filePath))
+.header("Content-Type", "application/octet-stream");{{/eq}}
+{{else}}
+requestBuilder.method("{{method}}", HttpRequest.BodyPublishers.noBody());{{/if}}{{#each headerParameters}}
+requestBuilder.header("{{this.name}}", "{{this.type}}");{{/each}}
+
+HttpRequest request = requestBuilder.build();
+HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());

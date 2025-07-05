@@ -1,0 +1,14 @@
+{{#if package}}package {{package}}{{/if}}
+{{#each models}}
+{{#if this.description}}
+/**
+ * {{this.description}}
+ */{{/if}}
+@Data
+public class {{{this.targetType}}} {
+{{#each this.properties}}{{#if this.description}}
+    /** {{{this.description}}} */{{/if}}
+    private {{{this.targetType}}} {{{this.name}}};
+{{/each}}
+}
+{{/each}}

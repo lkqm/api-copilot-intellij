@@ -1,0 +1,36 @@
+const axios = require('axios');
+
+const url = "http://127.0.0.1:8080{{path}}"
+const method = "{{method}}"{{#if queryParameters}}
+
+const params = new URLSearchParams();{{#each queryParameters}}
+params.append("{{this.name}}", "{{this.type}}");{{/each}}{{/if}}{{#if requestBody}}
+{{#eq requestBodyType 'json'}}
+const data = {{{this.requestBody.jsonExample}}};{{/eq}}{{#eq requestBodyType 'form'}}
+const data = new URLSearchParams();{{#each requestBodyForm}}
+data.append("{{this.name}}", "{{this.type}}");{{/each}}{{/eq}}{{#eq requestBodyType 'form_data'}}
+const data = new FormData();{{#each requestBodyForm}}
+data.append("{{this.name}}", "{{this.type}}");{{/each}}{{/eq}}{{#eq requestBodyType 'binary'}}
+const data = new Blob([]);{{/eq}}
+{{/if}}
+
+const headers = {};{{#eq requestBodyType 'json'}}
+headers['Content-Type'] = 'application/json';{{/eq}}{{#eq requestBodyType 'form'}}
+headers['Content-Type'] = 'application/x-www-form-urlencoded';{{/eq}}{{#each headerParameters}}
+headers['{{this.name}}'] = '{{this.type}}';{{/each}}
+
+const config = {
+  method: method,
+  url: url,{{#if queryParameters}}
+  params: Object.fromEntries(params),{{/if}}{{#if requestBody}}
+  data: data,{{/if}}
+  headers: headers
+};
+
+axios(config)
+   .then(response => {
+     console.log(response.data);
+   })
+   .catch(error => {
+     console.log('error', error);
+    });

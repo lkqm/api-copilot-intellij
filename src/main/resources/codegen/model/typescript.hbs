@@ -1,0 +1,11 @@
+{{#each models}}
+export interface {{#pascalCase this.targetType}}{{/pascalCase}} {
+{{#each this.properties}}{{#if this.description}}
+  /**
+   * {{{this.description}}}
+   */{{/if}}
+  {{this.name}}{{#unless this.required}}?{{/unless}}: {{{this.targetType}}};
+{{/each}}
+}
+
+{{/each}}

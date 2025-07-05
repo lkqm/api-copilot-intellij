@@ -1,0 +1,10 @@
+{{#each models}}
+data class {{#pascalCase this.targetType}}{{/pascalCase}}(
+{{#each this.properties}}{{#if this.description}}
+    /**
+     * {{{this.description}}}
+     */{{/if}}
+    val {{this.name}}: {{{this.targetType}}}{{#unless this.required}}?{{/unless}}{{#unless @last}},{{/unless}}
+{{/each}}
+)
+{{/each}}

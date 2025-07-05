@@ -1,0 +1,43 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:http/http.dart' show Response;
+
+var uri = Uri.parse('http://127.0.0.1:8080{{path}}');{{#if queryParameters}}
+var queryParams = { {{#each queryParameters}}
+  '{{this.name}}': '{{this.type}}'{{#unless @last}},{{/unless}}{{/each}}
+};
+uri = uri.replace(queryParameters: queryParams);{{/if}}
+var headers = { {{#each headerParameters}}
+'{{this.name}}': '{{this.type}}'{{#unless @last}},{{/unless}}{{/each}}
+};
+{{#if requestBody}}{{#eq requestBodyType 'json'}}
+// json
+final data = {{{this.requestBody.jsonExample}}};
+final body = jsonEncode(data);
+headers['Content-Type'] = 'application/json';{{/eq}}{{#eq requestBodyType 'form'}}
+// form
+final data = { {{#each requestBodyForm}}
+  '{{this.name}}': '{{this.type}}'{{#unless @last}},{{/unless}}{{/each}}
+};
+final body = data.entries
+  .map((entry) => '${Uri.encodeComponent(entry.key)}=${Uri.encodeComponent(entry.value)}')
+  .join('&');
+headers['Content-Type'] = 'application/x-www-form-urlencoded';{{/eq}}{{#eq requestBodyType 'binary'}}
+// binary
+final file = File('path/to/your/file');
+final body = await file.readAsBytes();
+headers['Content-Type'] = 'application/octet-stream';{{/eq}}{{/if}}{{#eq requestBodyType 'form_data'}}
+final request = http.MultipartRequest('{{method}}', uri);
+request.headers.addAll(headers);{{#each requestBodyForm}}{{#neq this.type 'file'}}
+request.fields['{{this.name}}'] = '{{this.type}}';{{else}}request.files.add(await http.MultipartFile.fromPath('{{this.name}}', '/path/to/file.jpg'));{{/neq}}
+StreamedResponse streamedResponse = await request.send();
+Response response = await http.Response.fromStream(streamedResponse);{{/each}}{{else}}
+{{#in method 'GET' 'HEAD'}}Response response = await http.{{#lowerCase method}}{{/lowerCase}}(uri, headers: headers);{{/in}}
+{{#in method 'POST' 'PUT' 'PATCH' 'DELETE'}}Response response = await http.{{#lowerCase method}}{{/lowerCase}}(uri, headers: headers{{#if requestBody}}, body: body){{/if}};{{/in}}
+{{#in method 'OPTIONS' 'TRACE'}}var request = http.Request('{{method}}', uri);
+request.headers.addAll(headers);
+StreamedResponse streamedResponse = await request.send();
+Response response = await http.Response.fromStream(streamedResponse);{{/in}}{{/eq}}
+print('response http status: ${response.statusCode}');
+print('response body: ${response.body}');

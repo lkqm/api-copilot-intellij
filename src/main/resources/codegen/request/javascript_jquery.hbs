@@ -1,0 +1,39 @@
+var url = "http://127.0.0.1:8080{{path}}";
+var method = "{{method}}";{{#if queryParameters}}
+
+var queryParams = $.param({ {{#each queryParameters}}
+  "{{this.name}}": "{{this.type}}"{{#unless @last}},{{/unless}}{{/each}}
+});
+url = url + "?" + queryParams;{{/if}}{{#if requestBody}}
+{{#eq requestBodyType 'json'}}
+var data = JSON.stringify({{{this.requestBody.jsonExample}}});{{/eq}}{{#eq requestBodyType 'form'}}
+var data = { {{#each requestBodyForm}}
+  "{{this.name}}": "{{this.type}}"{{#unless @last}},{{/unless}}{{/each}}
+};{{/eq}}{{#eq requestBodyType 'form_data'}}
+var data = new FormData();{{#each requestBodyForm}}
+data.append("{{this.name}}", "{{this.type}}");{{/each}}{{/eq}}{{#eq requestBodyType 'binary'}}
+var data = new Blob([]);{{/eq}}
+{{/if}}
+
+var headers = {};{{#each headerParameters}}
+headers["{{this.name}}"] = "{{this.type}}";{{/each}}
+
+$.ajax({
+  url: url,
+  type: method,{{#if requestBody}}
+  data: data,{{/if}}{{#eq requestBodyType 'json'}}
+  contentType: "application/json",
+  dataType: "json",{{/eq}}{{#eq requestBodyType 'form'}}
+  contentType: "application/x-www-form-urlencoded",{{/eq}}{{#eq requestBodyType 'form_data'}}
+  contentType: false,
+  processData: false,{{/eq}}{{#if headerParameters}}
+  headers: headers,{{/if}}
+  success: function(response) {
+    console.log(response);
+  },
+  error: function(xhr, status, error) {
+    console.log('Error: ' + error);
+    console.log('Status: ' + status);
+    console.log('Response: ' + xhr.responseText);
+  }
+});
