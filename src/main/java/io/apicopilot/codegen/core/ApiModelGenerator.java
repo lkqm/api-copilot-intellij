@@ -13,7 +13,6 @@ import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.collections.CollectionUtils;
 
 import java.util.List;
 
@@ -95,7 +94,7 @@ public class ApiModelGenerator {
                     MediaType mediaType = entry.getValue();
                     ResponseBodyType responseBodyType = ResponseBodyType.fromContentType(contentType);
                     PropertyModel responseBody = PropertyModel.of(mediaType.getSchema(), false, typeResolver, "Response");
-                    if(responseBodyType != null) {
+                    if (responseBodyType != null) {
                         model.setResponseBodyType(responseBodyType.name());
                     }
                     model.setResponseBody(responseBody);

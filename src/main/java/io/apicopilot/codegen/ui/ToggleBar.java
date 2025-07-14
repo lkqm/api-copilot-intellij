@@ -1,7 +1,6 @@
 package io.apicopilot.codegen.ui;
 
 import com.intellij.ui.JBColor;
-import org.apache.commons.collections.CollectionUtils;
 
 import javax.swing.*;
 import java.awt.*;
@@ -28,7 +27,7 @@ public class ToggleBar extends JPanel {
             this.activeColor = JBColor.GRAY;
         }
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
-        setBorder( BorderFactory.createLineBorder(activeColor, 1, true) );
+        setBorder(BorderFactory.createLineBorder(activeColor, 1, true));
         setOptions(options, false);
     }
 

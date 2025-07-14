@@ -8,7 +8,6 @@ import com.intellij.ui.ComboboxSpeedSearch;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBScrollPane;
-import io.apicopilot.codegen.ui.LanguageComboBoxRenderer;
 import io.apicopilot.codegen.core.GenerateConfigs;
 import io.apicopilot.codegen.generator.ModelCodeGenerator;
 import io.apicopilot.document.Document;
@@ -19,8 +18,6 @@ import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * 生成模型界面
@@ -32,7 +29,6 @@ public class GenerateModelPanel extends JBPanel<GenerateModelPanel> implements D
     private CodeEditorPanel codeEditor;
     private JButton copyButton;
     private final ModelCodeGenerator codeGenerator;
-    private Timer resetTimer;
 
     public GenerateModelPanel(Project project, Document document, Request request) {
         super(new BorderLayout());
@@ -61,10 +57,10 @@ public class GenerateModelPanel extends JBPanel<GenerateModelPanel> implements D
         languagePanel.setBorder(BorderFactory.createTitledBorder(""));
         List<String> languages = GenerateConfigs.getInstance().getConfig().getModelLanguages();
         languageComboBox = new ComboBox<>(languages.toArray(new String[0]));
-        
+
         // 设置自定义渲染器以显示语言图标
         languageComboBox.setRenderer(new LanguageComboBoxRenderer());
-        
+
         new ComboboxSpeedSearch(languageComboBox);
         languagePanel.add(languageComboBox, BorderLayout.CENTER);
 
@@ -89,7 +85,7 @@ public class GenerateModelPanel extends JBPanel<GenerateModelPanel> implements D
 
         // 按钮区域
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        copyButton = new JButton("Copy", AllIcons.Actions.Copy);
+        copyButton = new DynamicButton("Copy", AllIcons.Actions.Copy, "Copied", AllIcons.Actions.Checked);
         buttonPanel.add(copyButton);
 
         // 编辑器区域
@@ -108,27 +104,6 @@ public class GenerateModelPanel extends JBPanel<GenerateModelPanel> implements D
         String code = codeEditor.getText();
         StringSelection selection = new StringSelection(code);
         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
-
-        // 改变按钮图标和文本
-        copyButton.setIcon(AllIcons.Actions.Checked);
-        copyButton.setText("Copied");
-
-        // 取消之前的定时器
-        if (resetTimer != null) {
-            resetTimer.cancel();
-        }
-
-        // 2秒后恢复原始状态
-        resetTimer = new Timer();
-        resetTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                SwingUtilities.invokeLater(() -> {
-                    copyButton.setIcon(AllIcons.Actions.Copy);
-                    copyButton.setText("Copy");
-                });
-            }
-        }, 2000);
     }
 
     private void handleLanguageChange(ActionEvent e) {
@@ -144,9 +119,6 @@ public class GenerateModelPanel extends JBPanel<GenerateModelPanel> implements D
 
     @Override
     public void dispose() {
-        if (resetTimer != null) {
-            resetTimer.cancel();
-        }
         codeEditor.dispose();
     }
 }

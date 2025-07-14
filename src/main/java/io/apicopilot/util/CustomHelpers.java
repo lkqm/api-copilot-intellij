@@ -2,6 +2,7 @@ package io.apicopilot.util;
 
 import com.github.jknack.handlebars.Helper;
 import com.github.jknack.handlebars.Options;
+
 import java.io.IOException;
 
 public enum CustomHelpers implements Helper<Object> {
@@ -62,9 +63,9 @@ public enum CustomHelpers implements Helper<Object> {
 
     private static String[] splitWords(String input) {
         String normalized = input
-            .replace("-", " ")
-            .replace("_", " ")
-            .replaceAll("([a-z])([A-Z])", "$1 $2");
+                .replace("-", " ")
+                .replace("_", " ")
+                .replaceAll("([a-z])([A-Z])", "$1 $2");
         return normalized.trim().split("\\s+");
     }
 

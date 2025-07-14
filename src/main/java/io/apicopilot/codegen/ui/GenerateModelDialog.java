@@ -20,7 +20,7 @@ public class GenerateModelDialog extends DialogWrapper {
     private final Document document;
     private final Request request;
 
-    public GenerateModelDialog(@Nullable Project project,  Document document, Request request) {
+    public GenerateModelDialog(@Nullable Project project, Document document, Request request) {
         super(project);
         setTitle("Generate Model Code");
         this.project = project;
@@ -32,7 +32,7 @@ public class GenerateModelDialog extends DialogWrapper {
 
     @Override
     protected @Nullable JComponent createCenterPanel() {
-        if(contentPane == null) {
+        if (contentPane == null) {
             contentPane = new GenerateModelPanel(this.project, this.document, this.request);
             contentPane.setLanguage("TypeScript");
         }

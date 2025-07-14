@@ -17,7 +17,7 @@ public enum RequestBodyType {
 
     public static RequestBodyType fromContentType(String contentType) {
         for (RequestBodyType type : RequestBodyType.values()) {
-            if(type.contentType.equals(contentType)){
+            if (type.contentType.equals(contentType)) {
                 return type;
             }
         }

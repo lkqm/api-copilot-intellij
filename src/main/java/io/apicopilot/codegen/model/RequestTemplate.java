@@ -12,17 +12,23 @@ import org.apache.commons.lang3.StringUtils;
 @NoArgsConstructor
 public class RequestTemplate {
 
-    /** 分类语言 */
+    /**
+     * 分类语言
+     */
     private String language;
 
-    /** 请求方式名称 */
+    /**
+     * 请求方式名称
+     */
     private String name;
 
-    /** 模板 */
+    /**
+     * 模板
+     */
     private String template;
 
     public String getTemplate() {
-        if(StringUtils.isEmpty(template)){
+        if (StringUtils.isEmpty(template)) {
             String filename = language.toLowerCase() + "_" + name.toLowerCase();
             template = "codegen/request/" + filename + ".hbs";
         }

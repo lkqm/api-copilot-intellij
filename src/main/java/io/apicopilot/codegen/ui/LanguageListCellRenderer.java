@@ -2,7 +2,6 @@ package io.apicopilot.codegen.ui;
 
 import com.intellij.ui.components.JBLabel;
 import io.apicopilot.icon.LanguageIcons;
-import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,7 +15,7 @@ public class LanguageListCellRenderer extends JBLabel implements ListCellRendere
 
     @Override
     public Component getListCellRendererComponent(JList<? extends String> list, String value,
-            int index, boolean isSelected, boolean cellHasFocus) {
+                                                  int index, boolean isSelected, boolean cellHasFocus) {
 
         // 设置文本
         setText(value);

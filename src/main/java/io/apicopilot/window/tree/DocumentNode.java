@@ -33,7 +33,7 @@ public class DocumentNode extends ApiViewNode<DocumentNode.Context> {
         JPopupMenu menu = new JBPopupMenu();
 
         // Reload document
-        if(!document.isLoading()) {
+        if (!document.isLoading()) {
             JMenuItem reloadItem = new JBMenuItem("Reload");
             reloadItem.addActionListener(actionEvent -> {
                 document.setLoading(true);

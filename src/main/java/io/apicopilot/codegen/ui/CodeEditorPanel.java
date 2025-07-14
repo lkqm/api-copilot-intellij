@@ -10,14 +10,9 @@ import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.ui.EditorTextField;
-import com.intellij.ui.JBColor;
-import com.intellij.ui.components.JBScrollBar;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 
 public class CodeEditorPanel extends JPanel implements Disposable {
 
@@ -47,7 +42,7 @@ public class CodeEditorPanel extends JPanel implements Disposable {
         settings.setVirtualSpace(false);
         settings.setWheelFontChangeEnabled(false);
         settings.setCaretRowShown(false);
-        if(editor instanceof EditorEx) {
+        if (editor instanceof EditorEx) {
             EditorEx editorEx = (EditorEx) editor;
             JScrollBar scrollBar = editorEx.getScrollPane().getVerticalScrollBar();
             scrollBar.setOpaque(false);

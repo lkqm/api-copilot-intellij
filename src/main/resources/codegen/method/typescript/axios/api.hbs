@@ -1,6 +1,6 @@
 /**
  * {{{summary}}}
  */
-export function {{operationId}}({{#each pathParameters}}{{#if @index}}, {{/if}}{{this.name}}: {{this.targetType}}{{/each}}{{#if queryParameters}}{{#if pathParameters}}, {{/if}}query: {{queryRequestType}}{{#if requestBody}}, {{/if}}{{/if}}{{#if requestBody}}data: {{requestBody.targetType}}{{/if}}): Promise<{{responseBody.targetType}}> {
+export function {{operationId}}({{#each pathParameters}}{{#if @index}}, {{/if}}{{this.name}}: {{this.targetType}}{{/each}}{{#if queryParameters}}{{#if pathParameters}}, {{/if}}params: {{queryRequestType}}{{#if requestBody}}, {{/if}}{{/if}}{{#if requestBody}}data: {{requestBody.targetType}}{{/if}}): Promise<{{responseBody.targetType}}> {
   return axios.{{#lower method}}{{/lower}}(`{{path}}`, data);
 }

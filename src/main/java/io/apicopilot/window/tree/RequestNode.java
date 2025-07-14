@@ -5,7 +5,6 @@ import com.intellij.openapi.ui.JBMenuItem;
 import com.intellij.openapi.ui.JBPopupMenu;
 import io.apicopilot.codegen.ui.GenerateModelDialog;
 import io.apicopilot.codegen.ui.GenerateRequestDialog;
-import io.apicopilot.codegen.ui.GenerateRequestPanel;
 import io.apicopilot.document.Document;
 import io.apicopilot.model.Request;
 import io.apicopilot.util.ClipboardUtils;

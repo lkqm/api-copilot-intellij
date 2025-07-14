@@ -29,7 +29,7 @@ public class GenerateRequestDialog extends DialogWrapper {
 
     @Override
     protected @Nullable JComponent createCenterPanel() {
-        if(contentPane == null) {
+        if (contentPane == null) {
             contentPane = new GenerateRequestPanel(this.project, this.document, this.request);
             contentPane.setLanguage("C#");
         }

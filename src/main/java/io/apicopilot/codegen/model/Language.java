@@ -8,10 +8,14 @@ import lombok.Data;
 @Data
 public class Language {
 
-    /** 语言名称 */
+    /**
+     * 语言名称
+     */
     private String language;
 
-    /** 文件扩展名 */
+    /**
+     * 文件扩展名
+     */
     private String extension;
 
 }

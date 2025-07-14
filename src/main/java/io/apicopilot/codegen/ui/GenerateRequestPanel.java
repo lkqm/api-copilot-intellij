@@ -3,7 +3,6 @@ package io.apicopilot.codegen.ui;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBPanel;
@@ -23,8 +22,6 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.util.Collections;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.stream.Collectors;
 
 public class GenerateRequestPanel extends JBPanel<GenerateRequestPanel> implements Disposable {
@@ -35,7 +32,6 @@ public class GenerateRequestPanel extends JBPanel<GenerateRequestPanel> implemen
     private CodeEditorPanel codeEditor;
     private JButton copyButton;
     private final RequestCodeGenerator codeGenerator;
-    private Timer resetTimer;
 
     public GenerateRequestPanel(Project project, Document document, Request request) {
         super(new BorderLayout());
@@ -88,7 +84,7 @@ public class GenerateRequestPanel extends JBPanel<GenerateRequestPanel> implemen
         requestTypesBar.setVisible(CollectionUtils.isNotEmpty(requestTypes));
         // 按钮区域
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        copyButton = new JButton("Copy", AllIcons.Actions.Copy);
+        copyButton = new DynamicButton("Copy", AllIcons.Actions.Copy, "Copied", AllIcons.Actions.Checked);
         buttonPanel.add(copyButton);
 
         headerPanel.add(requestTypesBar, BorderLayout.WEST);
@@ -120,27 +116,6 @@ public class GenerateRequestPanel extends JBPanel<GenerateRequestPanel> implemen
         String code = codeEditor.getText();
         StringSelection selection = new StringSelection(code);
         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
-
-        // 改变按钮图标和文本
-        copyButton.setIcon(AllIcons.Actions.Checked);
-        copyButton.setText("Copied");
-
-        // 取消之前的定时器
-        if (resetTimer != null) {
-            resetTimer.cancel();
-        }
-
-        // 2秒后恢复原始状态
-        resetTimer = new Timer();
-        resetTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                SwingUtilities.invokeLater(() -> {
-                    copyButton.setIcon(AllIcons.Actions.Copy);
-                    copyButton.setText("Copy");
-                });
-            }
-        }, 2000);
     }
 
     private void handleLanguageChange(ListSelectionEvent e) {
@@ -165,9 +140,6 @@ public class GenerateRequestPanel extends JBPanel<GenerateRequestPanel> implemen
 
     @Override
     public void dispose() {
-        if (resetTimer != null) {
-            resetTimer.cancel();
-        }
         codeEditor.dispose();
     }
 }
