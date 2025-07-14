@@ -1,49 +1,24 @@
-import org.apache.hc.client5.http.classic.HttpClient;
-import org.apache.hc.client5.http.classic.methods.*;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
-import org.apache.hc.core5.http.HttpEntity;
-import org.apache.hc.core5.http.io.entity.StringEntity;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.apache.hc.core5.http.ContentType;{{#eq requestBodyType 'form'}}
-import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
-import org.apache.hc.core5.http.NameValuePair;
-import org.apache.hc.core5.http.message.BasicNameValuePair;
-import java.util.ArrayList;
-import java.util.List;{{/eq}}{{#eq requestBodyType 'form_data'}}
-import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
-import java.io.File;{{/eq}}{{#eq requestBodyType 'binary'}}
-import org.apache.hc.core5.http.io.entity.FileEntity;
-import java.io.File;{{/eq}}
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-
 HttpClient httpClient = HttpClients.createDefault();
-
 String url = "http://127.0.0.1:8080{{path}}";{{#if queryParameters}}
 StringBuilder queryParams = new StringBuilder();{{#each queryParameters}}
-queryParams.append("{{this.name}}=").append("{{this.type}}"){{#unless @last}}.append("&"){{/unless}};{{/each}}
+queryParams.append("{{{this.name}}}=").append("{{this.type}}"){{#unless @last}}.append("&"){{/unless}};{{/each}}
 url = url + "?" + queryParams.toString();{{/if}}
-Http{{#pascalCase method}}{{/pascalCase}} request = new Http{{#pascalCase method}}{{/pascalCase}}(url);{{#if headerParameters}}
-
-{{#each headerParameters}}request.addHeader("{{this.name}}", "{{this.type}}");{{/each}}{{/if}}{{#if requestBody}}
-{{#eq requestBodyType 'json'}}
-String jsonString = """
+Http{{#pascal method}}{{/pascal}} request = new Http{{#pascal method}}{{/pascal}}(url);{{#if headerParameters}}{{#each headerParameters}}
+request.addHeader("{{{this.name}}}", "{{this.type}}");{{/each}}{{/if}}{{#if requestBody}}{{#eq requestBodyType 'json'}}
+String json = """
 {{{this.requestBody.jsonExample}}}
 """;
-request.setEntity(new StringEntity(jsonString, ContentType.APPLICATION_JSON));{{/eq}}{{#eq requestBodyType 'form'}}
+request.setEntity(new StringEntity(json, ContentType.APPLICATION_JSON));{{/eq}}{{#eq requestBodyType 'form'}}
 List<NameValuePair> formParams = new ArrayList<>();{{#each requestBodyForm}}
-formParams.add(new BasicNameValuePair("{{this.name}}", "{{this.type}}"));{{/each}}
+formParams.add(new BasicNameValuePair("{{{this.name}}}", "{{this.type}}"));{{/each}}
 request.setEntity(new UrlEncodedFormEntity(formParams));{{/eq}}{{#eq requestBodyType 'form_data'}}
-MultipartEntityBuilder builder = MultipartEntityBuilder.create();{{#each requestBodyForm}}
-builder.addTextBody("{{this.name}}", "{{this.type}}", ContentType.TEXT_PLAIN);{{/each}}
+MultipartEntityBuilder builder = MultipartEntityBuilder.create();{{#each requestBodyForm}}{{#neq this.type 'file'}}
+builder.addTextBody("{{{this.name}}}", "{{this.type}}", ContentType.TEXT_PLAIN);{{else}}builder.addBinaryBody("{{{this.name}}}", new File("/path/to/file.jpg"), ContentType.IMAGE_JPEG, "file.jpg");{{/neq}}{{/each}}
 HttpEntity multipartEntity = builder.build();
 request.setEntity(multipartEntity);{{/eq}}{{#eq requestBodyType 'binary'}}
 File file = new File("path/to/your/file");
 FileEntity fileEntity = new FileEntity(file, ContentType.APPLICATION_OCTET_STREAM);
 request.setEntity(fileEntity);{{/eq}}{{/if}}
-
 try (CloseableHttpResponse response = httpClient.execute(request)) {
     int statusCode = response.getCode();
     HttpEntity responseEntity = response.getEntity();

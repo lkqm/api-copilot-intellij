@@ -74,6 +74,8 @@
             <separator/>
             <action class="io.apicopilot.window.action.RefreshAction"/>
             <action class="io.apicopilot.window.action.PreviewAction"/>"
+            <separator/>
+            <action class="io.apicopilot.window.action.GenerateCodeAction"/>"
         </group>
 
         <group id="ApiViewToolbar">

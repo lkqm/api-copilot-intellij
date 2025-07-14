@@ -1,36 +1,27 @@
-import okhttp3.*;
-import java.io.IOException;{{#eq requestBodyType 'form_data'}}
-import java.io.File;{{/eq}}
-
 OkHttpClient client = new OkHttpClient().newBuilder().build();
-
 String url = "http://127.0.0.1:8080{{path}}";
 String method = "{{method}}";{{#if queryParameters}}
-
 HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();{{#each queryParameters}}
-urlBuilder.addQueryParameter("{{this.name}}", "{{this.type}}");{{/each}}
-url = urlBuilder.build().toString();{{/if}}{{#if requestBody}}
-{{#eq requestBodyType 'json'}}
-MediaType JSON = MediaType.get("application/json; charset=utf-8");
-String jsonString = """
+urlBuilder.addQueryParameter("{{{this.name}}}", "{{this.type}}");{{/each}}
+url = urlBuilder.build().toString();{{/if}}{{#if requestBody}}{{#eq requestBodyType 'json'}}
+String json = """
 {{{this.requestBody.jsonExample}}}
 """;
-RequestBody body = RequestBody.create(jsonString, JSON);{{/eq}}{{#eq requestBodyType 'form'}}
+RequestBody body = RequestBody.create(json, MediaType.get("application/json; charset=utf-8"));{{/eq}}{{#eq requestBodyType 'form'}}
 FormBody.Builder formBuilder = new FormBody.Builder();{{#each requestBodyForm}}
-formBuilder.add("{{this.name}}", "{{this.type}}");{{/each}}
+formBuilder.add("{{{this.name}}}", "{{this.type}}");{{/each}}
 RequestBody body = formBuilder.build();{{/eq}}{{#eq requestBodyType 'form_data'}}
-MultipartBody.Builder multipartBuilder = new MultipartBody.Builder().setType(MultipartBody.FORM);{{#each requestBodyForm}}
-multipartBuilder.addFormDataPart("{{this.name}}", "{{this.type}}");{{/each}}
+MultipartBody.Builder multipartBuilder = new MultipartBody.Builder().setType(MultipartBody.FORM);{{#each requestBodyForm}}{{#neq this.type 'file'}}
+multipartBuilder.addFormDataPart("{{{this.name}}}", "{{this.type}}");{{else}}multipartBuilder.addFormDataPart("{{{this.name}}}", RequestBody.create(new File("/path/to/file.jpg"), MediaType.get("image/jpeg")));{{/neq}}{{/each}}
 RequestBody body = multipartBuilder.build();{{/eq}}{{#eq requestBodyType 'binary'}}
 MediaType MEDIA_TYPE = MediaType.parse("application/octet-stream");
 File file = new File("path/to/your/file");
 RequestBody body = RequestBody.create(file, MEDIA_TYPE);{{/eq}}{{else}}
 RequestBody body = null;{{/if}}
-
 Request.Builder requestBuilder = new Request.Builder()
         .url(url)
         .method(method, body);{{#each headerParameters}}
-requestBuilder.addHeader("{{this.name}}", "{{this.type}}");{{/each}}
+requestBuilder.addHeader("{{{this.name}}}", "{{this.type}}");{{/each}}
 
 Request request = requestBuilder.build();
 try (Response response = client.newCall(request).execute()) {

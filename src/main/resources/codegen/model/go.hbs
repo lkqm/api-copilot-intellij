@@ -1,9 +1,9 @@
-{{#each models}}{{#if this.description}}
+{{#if package}}package {{{package}}}{{/if}}{{#each models}}
+{{#if this.description}}
 // {{{this.description}}}{{/if}}
-type {{#pascalCase this.targetType}}{{/pascalCase}} struct {
+type {{{this.targetType}}} struct {
 {{#each this.properties}}{{#if this.description}}
     // {{{this.description}}}{{/if}}
-    {{#pascalCase this.name}}{{/pascalCase}} {{this.targetType}} `json:"{{this.name}}"`
+    {{#pascal this.name}}{{/pascal}} {{{this.targetType}}} {{#if useJson}}`json:"{{{this.name}}}"`{{/if}}
 {{/each}}
-}
-{{/each}}
+}{{/each}}

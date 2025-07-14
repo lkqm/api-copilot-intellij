@@ -3,8 +3,7 @@ from typing import Optional, List, Dict, Any
 import datetime
 {{#each models}}
 @dataclass
-class {{#pascalCase this.targetType}}{{/pascalCase}}:{{#if this.description}}
-  """{{this.description}}"""{{/if}}
-{{#each this.properties}}
-  {{#snakeCase this.name}}{{/snakeCase}}: {{#unless this.required}}Optional[{{/unless}}{{this.targetType}}{{#unless this.required}}] = None{{/unless}} {{#if this.description}}# {{{this.description}}}{{/if}}{{/each}}
+class {{{this.targetType}}}:{{#if this.description}}
+  """{{this.description}}"""{{/if}}{{#each this.properties}}
+  {{#if usePyNaming}}{{#snake this.name}}{{/snake}}{{else}}{{{this.name}}}{{/if}}: {{#unless this.required}}Optional[{{/unless}}{{this.targetType}}{{#unless this.required}}] = None{{/unless}} {{#if this.description}}# {{{this.description}}}{{/if}}{{/each}}
 {{/each}}

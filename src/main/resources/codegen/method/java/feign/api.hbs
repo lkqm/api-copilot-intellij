@@ -1,5 +1,0 @@
-/**
-* {{{summary}}}
-*/
-@{{#pascalCase method}}{{/pascalCase}}Mapping("{{path}}")
-{{#capitalize responseBody.targetType}}{{/capitalize}} {{operationId}}({{#each pathParameters}}{{#if @index}}, {{/if}}@PathVariable("{{this.name}}"){{this.targetType}} {{{this.name}}}{{/each}}{{#if queryParameters}}{{#if pathParameters}}, {{/if}}{{queryRequestType}} query{{#if requestBody}}, {{/if}}{{/if}}{{#if requestBody}}@RequestBody {{{requestBody.targetType}}} request{{/if}});

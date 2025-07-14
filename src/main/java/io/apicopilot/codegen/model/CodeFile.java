@@ -5,17 +5,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
-/**
- * 生成模型的数据上下文.
- */
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class GenerateModelsContext {
+@AllArgsConstructor
+public class CodeFile {
 
-    private List<PropertyModel> models;
+    private String type;
+
+    private String path;
+
+    private String code;
 
 }

@@ -19,17 +19,23 @@ public class CodeEditorPanel extends JPanel implements Disposable {
     private final Project project;
     private Editor editor;
     private String extension = "text";
+    private boolean readonly;
 
     public CodeEditorPanel(Project project) {
+        this(project, true);
+    }
+
+    public CodeEditorPanel(Project project, boolean readonly) {
         super(new BorderLayout());
         this.project = project;
+        this.readonly = readonly;
         createEditor("", extension);
     }
 
     private void createEditor(String code, String extension) {
         FileType fileType = FileTypeManager.getInstance().getFileTypeByExtension(extension);
         Document document = EditorFactory.getInstance().createDocument(code);
-        editor = EditorFactory.getInstance().createEditor(document, project, fileType, true);
+        editor = EditorFactory.getInstance().createEditor(document, project, fileType, this.readonly);
         editor.getSettings().setLineNumbersShown(true);
         editor.getSettings().setLineMarkerAreaShown(true);
         editor.getSettings().setFoldingOutlineShown(true);

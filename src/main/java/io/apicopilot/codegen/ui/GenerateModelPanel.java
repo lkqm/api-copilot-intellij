@@ -4,20 +4,35 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.ui.ComboboxSpeedSearch;
 import com.intellij.ui.JBSplitter;
+import com.intellij.ui.components.JBCheckBox;
+import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBScrollPane;
 import io.apicopilot.codegen.core.GenerateConfigs;
 import io.apicopilot.codegen.generator.ModelCodeGenerator;
+import io.apicopilot.codegen.model.CodeTemplate;
+import io.apicopilot.codegen.model.ModelTemplate;
 import io.apicopilot.document.Document;
 import io.apicopilot.model.Request;
+import io.apicopilot.util.SwingUtils;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 生成模型界面
@@ -29,6 +44,9 @@ public class GenerateModelPanel extends JBPanel<GenerateModelPanel> implements D
     private CodeEditorPanel codeEditor;
     private JButton copyButton;
     private final ModelCodeGenerator codeGenerator;
+    private JPanel optionsPanel;
+    private Map<String, JComponent> optionsComponents = new HashMap<>();
+    private ModelTemplate template;
 
     public GenerateModelPanel(Project project, Document document, Request request) {
         super(new BorderLayout());
@@ -48,6 +66,11 @@ public class GenerateModelPanel extends JBPanel<GenerateModelPanel> implements D
         languageComboBox.addActionListener(this::handleLanguageChange);
     }
 
+    @Override
+    public void dispose() {
+        codeEditor.dispose();
+    }
+
     private JPanel createLeftPanel() {
         JPanel leftPanel = new JPanel(new BorderLayout(0, 10));
         leftPanel.setPreferredSize(new Dimension(270, 420));
@@ -65,18 +88,14 @@ public class GenerateModelPanel extends JBPanel<GenerateModelPanel> implements D
         languagePanel.add(languageComboBox, BorderLayout.CENTER);
 
         // 参数配置区域
-        JPanel parameterContainer = new JPanel(new BorderLayout());
-        parameterContainer.setBorder(BorderFactory.createTitledBorder(""));
-        JPanel parameterPanel = new JPanel();
-        parameterPanel.setLayout(new BoxLayout(parameterPanel, BoxLayout.Y_AXIS));
-        parameterPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        JScrollPane scrollPane = new JBScrollPane(parameterPanel);
+        optionsPanel = new JPanel();
+        optionsPanel.setLayout(new BoxLayout(optionsPanel, BoxLayout.Y_AXIS));
+        JScrollPane scrollPane = new JBScrollPane(optionsPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        parameterContainer.add(scrollPane, BorderLayout.CENTER);
 
         leftPanel.add(languagePanel, BorderLayout.NORTH);
-        leftPanel.add(parameterContainer, BorderLayout.CENTER);
+        leftPanel.add(scrollPane, BorderLayout.CENTER);
         return leftPanel;
     }
 
@@ -111,14 +130,140 @@ public class GenerateModelPanel extends JBPanel<GenerateModelPanel> implements D
         if (language == null) {
             return;
         }
+        rebuildOptionsPanel(language);
+        doGenerateCode();
+    }
 
-        String code = codeGenerator.generateCode(language);
+    private void doGenerateCode() {
+        String language = (String) languageComboBox.getSelectedItem();
+        if (language == null) {
+            return;
+        }
+
+        Map<String, Object> optionValues = getOptionValues();
+        String code = codeGenerator.generateCode(language, optionValues);
         String extension = GenerateConfigs.getInstance().getConfig().getExtension(language);
         codeEditor.setText(code, extension);
     }
 
-    @Override
-    public void dispose() {
-        codeEditor.dispose();
+    private void rebuildOptionsPanel(String language) {
+        optionsPanel.removeAll();
+        optionsComponents.clear();
+        template = GenerateConfigs.getInstance().getConfig().getModelTemplate(language);
+        if (template == null) {
+            optionsPanel.revalidate();
+            optionsPanel.repaint();
+            return;
+        }
+
+        List<ModelTemplate.Option> options = template.getOptions();
+        if (CollectionUtils.isEmpty(options)) {
+            optionsPanel.revalidate();
+            optionsPanel.repaint();
+            return;
+        }
+        for (ModelTemplate.Option option : options) {
+            if(BooleanUtils.isTrue(option.getHidden())) {
+                continue;
+            }
+            optionsPanel.add(Box.createVerticalStrut(8));
+            if ("text".equals(option.getType())) {
+                String label = option.getLabel();
+                if (StringUtils.isNotEmpty(label)) {
+                    JLabel labelComponent = new JLabel(" " + label);
+                    labelComponent.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    labelComponent.setAlignmentY(Component.CENTER_ALIGNMENT);
+                    JPanel labelPanel = linePanel(labelComponent);
+                    optionsPanel.add(labelPanel);
+                }
+                String defaultValue = option.getDefaultValue() != null?option.getDefaultValue().toString():null;
+                JTextField component = new JTextField(defaultValue);
+                component.setMaximumSize(new Dimension(Integer.MAX_VALUE, component.getPreferredSize().height));
+                JPanel fieldPanel = linePanel(component);
+                optionsComponents.put(option.getName(), component);
+                optionsPanel.add(fieldPanel);
+                component.addFocusListener(new FocusListener() {
+                    @Override
+                    public void focusGained(FocusEvent e) {
+                    }
+
+                    @Override
+                    public void focusLost(FocusEvent e) {
+                        doGenerateCode();
+                    }
+                });
+
+            } else if ("list".equals(option.getType())) {
+                String label = option.getLabel();
+                if (StringUtils.isNotEmpty(label)) {
+                    JLabel labelComponent = new JLabel(" " + label);
+                    labelComponent.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    labelComponent.setAlignmentY(Component.CENTER_ALIGNMENT);
+                    JPanel labelPanel = linePanel(labelComponent);
+                    optionsPanel.add(labelPanel);
+                }
+                List<String> values = option.getValues().stream().map(ModelTemplate.Value::getValue)
+                        .collect(Collectors.toList());
+                JComboBox<String> component = new ComboBox<>(values.toArray(new String[0]));
+                component.setMaximumSize(new Dimension(Integer.MAX_VALUE, component.getPreferredSize().height));
+                component.setSelectedItem(option.getDefaultValue());
+                JPanel comboPanel = linePanel(component);
+                optionsComponents.put(option.getName(), component);
+                optionsPanel.add(comboPanel);
+                component.addActionListener((e) -> doGenerateCode());
+            } else if ("boolean".equals(option.getType())) {
+                JBCheckBox component = new JBCheckBox(option.getLabel(), "true".equals(option.getDefaultValue()));
+                JPanel checkPanel = linePanel(component);
+                optionsComponents.put(option.getName(), component);
+                optionsPanel.add(checkPanel);
+                component.addChangeListener((e) -> doGenerateCode());
+            }
+        }
+        optionsPanel.revalidate();
+        optionsPanel.repaint();
+    }
+
+    private JPanel linePanel(JComponent component) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+        panel.add(component);
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, component.getPreferredSize().height));
+        return panel;
+    }
+
+    private Map<String, Object> getOptionValues() {
+        List<ModelTemplate.Option> options = template.getOptions();
+        if(CollectionUtils.isEmpty(options)) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Object> values = new HashMap<>();
+        for (ModelTemplate.Option option : options) {
+            if(BooleanUtils.isTrue(option.getHidden())) {
+                values.put(option.getName(), option.getDefaultValue());
+            } else if(optionsComponents.containsKey(option.getName())) {
+                JComponent component = optionsComponents.get(option.getName());
+                Object value = SwingUtils.getComponentValue(component);
+                values.put(option.getName(), value);
+            }
+        }
+        return values;
+    }
+
+    public ValidationInfo doValidate() {
+        if (template == null || template.getOptions() == null) {
+            return null;
+        }
+        List<ModelTemplate.Option> required = template.getOptions().stream()
+                .filter(option -> BooleanUtils.isTrue(option.getRequired())).collect(Collectors.toList());
+        Map<String, Object> optionValues = getOptionValues();
+        for (ModelTemplate.Option option : required) {
+            Object value = optionValues.get(option.getName());
+            if (value == null || StringUtils.isEmpty(value.toString())) {
+                return new ValidationInfo(option.getName() + " is required", optionsComponents.get(option.getName()));
+            }
+        }
+        return null;
     }
 }

@@ -7,15 +7,20 @@ import com.intellij.openapi.ui.JBMenuItem;
 import com.intellij.openapi.ui.JBPopupMenu;
 import com.intellij.openapi.vcs.VcsShowConfirmationOption;
 import com.intellij.util.ui.ConfirmationDialog;
+import io.apicopilot.codegen.ui.GenerateCodeDialog;
 import io.apicopilot.document.Document;
 import io.apicopilot.document.DocumentManager;
 import io.apicopilot.document.DocumentRepository;
+import io.apicopilot.model.Request;
+import io.apicopilot.util.OpenApiUtils;
 import io.apicopilot.window.ApiViewTreePane;
 import io.apicopilot.window.dialog.DocumentEditDialog;
 import lombok.*;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
+import java.util.List;
 
 /**
  * Document node.
@@ -69,7 +74,6 @@ public class DocumentNode extends ApiViewNode<DocumentNode.Context> {
             DocumentRepository.getInstance(project).delete(document.getId());
             data.getTreePane().removeDocumentNode(document.getId());
         });
-
         menu.add(deleteItem);
         return menu;
     }
@@ -102,6 +106,9 @@ public class DocumentNode extends ApiViewNode<DocumentNode.Context> {
     public static class Context {
 
         private ApiViewTreePane treePane;
+
+        @NotNull
+        private Project project;
 
         /**
          * 文档源

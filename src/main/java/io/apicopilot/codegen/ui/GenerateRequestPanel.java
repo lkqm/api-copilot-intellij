@@ -91,7 +91,7 @@ public class GenerateRequestPanel extends JBPanel<GenerateRequestPanel> implemen
         headerPanel.add(buttonPanel, BorderLayout.CENTER);
 
         // 编辑器区域
-        codeEditor = new CodeEditorPanel(this.project);
+        codeEditor = new CodeEditorPanel(this.project, false);
 
         rightPanel.add(headerPanel, BorderLayout.NORTH);
         rightPanel.add(codeEditor, BorderLayout.CENTER);

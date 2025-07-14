@@ -1,0 +1,126 @@
+[
+  {
+    "name": "default",
+    "language": "JavaScript",
+    "options": [
+      { "name": "httpModule", "type": "text", "required": true, "defaultValue": "axios", "label": "Http Module" },
+      { "name": "apiFile", "type": "text", "required": true, "defaultValue": "src/api/{{{doc}}}/{{{tag}}}/index.js", "label": "API File" },
+      { "name": "typesFile", "type": "text", "required": true, "defaultValue":  "src/api/{{{doc}}}/{{{tag}}}/types.ts", "label":  "Types File"},
+      { "name": "exportFile", "type": "text", "required": false, "defaultValue":  "src/api/{{{doc}}}/index.js", "label":  "Export File"},
+      {
+        "name": "useJsNaming",
+        "type": "boolean",
+        "label": "Use JavaScript-style names",
+        "required": false,
+        "defaultValue": false,
+        "hidden": true
+      },
+      {
+        "name": "useType",
+        "type": "boolean",
+        "label": "Use type",
+        "required": false,
+        "defaultValue": false,
+        "hidden": true
+      }
+    ],
+    "files": [
+      { "type": "client", "template": "codegen/code/javascript/default/client.hbs", "path": "{{{apiFile}}}" },
+      { "type": "models", "template": "codegen/model/typescript.hbs", "path":  "{{{typesFile}}}" },
+      { "type": "latest", "template": "codegen/code/javascript/default/export.hbs", "path":  "{{{exportFile}}}" }
+    ]
+  },
+  {
+    "name": "default",
+    "language": "TypeScript",
+    "options": [
+      { "name": "httpModule", "type": "text", "required": true, "defaultValue": "axios", "label": "Http Module" },
+      { "name": "apiFile", "type": "text", "required": true, "defaultValue": "src/api/{{{doc}}}/{{{tag}}}/index.ts", "label": "API File" },
+      { "name": "typesFile", "type": "text", "required": true, "defaultValue":  "src/api/{{{doc}}}/{{{tag}}}/types.ts", "label":  "Types File"},
+      { "name": "exportFile", "type": "text", "required": false, "defaultValue":  "src/api/{{{doc}}}/index.ts", "label":  "Export File"},
+      {
+        "name": "useJsNaming",
+        "type": "boolean",
+        "label": "Use JavaScript-style names",
+        "required": false,
+        "defaultValue": false,
+        "hidden": true
+      },
+      {
+        "name": "useType",
+        "type": "boolean",
+        "label": "Use type",
+        "required": false,
+        "defaultValue": false,
+        "hidden": true
+      }
+    ],
+    "files": [
+      { "type": "client", "template": "codegen/code/typescript/default/client.hbs", "path": "{{{apiFile}}}" },
+      { "type": "models", "template": "codegen/model/typescript.hbs", "path":  "{{{typesFile}}}" },
+      { "type": "latest", "template": "codegen/code/typescript/default/export.hbs", "path":  "{{{exportFile}}}" }
+    ]
+  },
+  {
+    "name": "OpenFeign",
+    "language": "Java",
+    "options": [
+      { "name": "clientClassName", "type": "text", "required": true, "label":  "Client Class Name", "defaultValue":  "{{#pascal tag}}{{/pascal}}{{#pascal doc}}{{/pascal}}Api"},
+      { "name": "clientPackage", "type": "text", "required": true, "label":  "Client Package", "defaultValue":  "client.{{doc}}"},
+      { "name": "modelPackage", "type": "text", "required": true, "label":  "Model Package", "defaultValue":  "client.{{doc}}.model"},
+      { "name": "serviceName", "type": "text", "required": true, "label":  "Service Name"},
+      { "name": "serviceUrl", "type": "text", "required": false, "label":  "Service URL"},
+      {
+        "name": "useLombok",
+        "type": "boolean",
+        "label": "Use lombok",
+        "required": false,
+        "defaultValue": "true"
+      },
+      {
+        "name": "serializer",
+        "type": "list",
+        "label": "Serialization",
+        "required": false,
+        "defaultValue": "jackson",
+        "values": [
+          { "value":  "none" },
+          { "value":  "jackson" },
+          { "value":  "gson" }
+        ]
+      }
+    ],
+    "files": [
+      { "type": "client", "template": "codegen/code/java/openfeign/client.hbs", "path":  "src/main/java/{{#replace clientPackage '.' '/'}}{{/replace}}/{{{clientClassName}}}.java"},
+      { "type": "model", "template": "codegen/model/java.hbs", "path":  "src/main/java/{{#replace modelPackage '.' '/'}}{{/replace}}/{{{modelName}}}.java"}
+    ]
+  },
+  {
+    "name": "OpenFeign",
+    "language": "Kotlin",
+    "options": [
+      { "name": "clientClassName", "type": "text", "required": true, "label":  "Client Class Name", "defaultValue":  "{{#pascal tag}}{{/pascal}}{{#pascal doc}}{{/pascal}}Api"},
+      { "name": "clientPackage", "type": "text", "required": true, "label":  "Client Package", "defaultValue":  "client.{{doc}}"},
+      { "name": "modelPackage", "type": "text", "required": true, "label":  "Model Package", "defaultValue":  "client.{{doc}}.model"},
+      { "name": "serviceName", "type": "text", "required": true, "label":  "Service Name"},
+      { "name": "serviceUrl", "type": "text", "required": false, "label":  "Service URL"},
+      {
+        "name": "serializer",
+        "type": "list",
+        "label": "Serialization",
+        "required": false,
+        "defaultValue": "jackson",
+        "values": [
+          { "value":  "none" },
+          { "value":  "jackson" },
+          { "value":  "klaxon" },
+          { "value":  "kotlinx" }
+        ]
+      }
+    ],
+    "files": [
+      { "type": "client", "template": "codegen/code/kotlin/openfeign/client.hbs", "path":  "src/main/kotlin/{{#replace clientPackage '.' '/'}}{{/replace}}/{{{clientClassName}}}.kt"},
+      { "type": "model", "template": "codegen/model/kotlin.hbs", "path":  "src/main/kotlin/{{#replace modelPackage '.' '/'}}{{/replace}}/{{{modelName}}}.kt"}
+    ]
+  }
+]

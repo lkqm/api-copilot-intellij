@@ -3,18 +3,18 @@ import Foundation{{/eq}}{{#eq requestBodyType 'binary'}}
 import Foundation{{/eq}}
 
 let urlString = "http://127.0.0.1:8080{{path}}"
-let method = HTTPMethod.{{#lowerCase method}}{{/lowerCase}}{{#if queryParameters}}
+let method = HTTPMethod.{{#lower method}}{{/lower}}{{#if queryParameters}}
 
 let parameters: [String: String] = [{{#each queryParameters}}
-    "{{this.name}}": "{{this.type}}",{{/each}}
+    "{{{this.name}}}": "{{this.type}}",{{/each}}
 ]{{/if}}{{#if requestBody}}
 {{#eq requestBodyType 'json'}}
 let jsonParameters: [String: Any] = {{{this.requestBody.jsonExample}}}{{/eq}}{{#eq requestBodyType 'form'}}
 let formParameters: [String: String] = [{{#each requestBodyForm}}
-    "{{this.name}}": "{{this.type}}",{{/each}}
+    "{{{this.name}}}": "{{this.type}}",{{/each}}
 ]{{/eq}}{{#eq requestBodyType 'form_data'}}
 let multipartFormData: [String: String] = [{{#each requestBodyForm}}
-    "{{this.name}}": "{{this.type}}",{{/each}}
+    "{{{this.name}}}": "{{this.type}}",{{/each}}
 ]{{/eq}}{{#eq requestBodyType 'binary'}}
 guard let fileURL = URL(string: "path/to/your/file") else {
     print("Error: Invalid file path")
@@ -22,7 +22,7 @@ guard let fileURL = URL(string: "path/to/your/file") else {
 }{{/eq}}{{/if}}{{#if headerParameters}}
 
 let headers: HTTPHeaders = [{{#each headerParameters}}
-    "{{this.name}}": "{{this.type}}",{{/each}}
+    "{{{this.name}}}": "{{this.type}}",{{/each}}
 ]{{/if}}{{#if requestBody}}{{#eq requestBodyType 'json'}}
 AF.request(
     urlString,

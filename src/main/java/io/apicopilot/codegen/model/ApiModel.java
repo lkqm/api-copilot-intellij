@@ -33,6 +33,7 @@ public class ApiModel {
     private String responseType;
 
     private List<PropertyModel> models;
+    private PropertyModel queryModel;
     private List<PropertyModel> requestModels;
     private List<PropertyModel> responseModels;
 

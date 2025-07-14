@@ -29,6 +29,11 @@ public class GenerateConfig {
      */
     private Request request;
 
+    /**
+     * 生成代码
+     */
+    private Code code;
+
     @Data
     public static class Model {
 
@@ -36,6 +41,11 @@ public class GenerateConfig {
          * 支持的语言
          */
         private List<String> languages;
+
+        /**
+         * 模板配置
+         */
+        private List<ModelTemplate>  templates;
     }
 
     @Data
@@ -52,16 +62,40 @@ public class GenerateConfig {
         private List<RequestTemplate> templates;
     }
 
+    @Data
+    public static class Code {
+
+        /**
+         * 支持的语言
+         */
+        private List<String> languages;
+
+        /**
+         * 模板配置
+         */
+        private List<CodeTemplate>  templates;
+    }
+
     public String getExtension(@NotNull String language) {
         Language lang = languages.stream().filter(o -> o.getLanguage().equalsIgnoreCase(language)).findFirst().orElse(null);
         return Objects.nonNull(lang) ? lang.getExtension() : null;
     }
 
     public List<String> getModelLanguages() {
-        if (model == null || model.getLanguages() == null) {
+        if (model == null) {
             return Collections.emptyList();
         }
-        return model.getLanguages();
+        if (model.languages != null) {
+            return model.languages;
+        }
+        return model.getTemplates().stream().map(ModelTemplate::getLanguage).distinct().collect(Collectors.toList());
+    }
+
+    public ModelTemplate getModelTemplate(@NotNull String language) {
+        if (model == null || model.getTemplates() == null) {
+            return null;
+        }
+        return model.getTemplates().stream().filter(o -> o.getLanguage().equalsIgnoreCase(language)).findFirst().orElse(null);
     }
 
     public List<String> getRequestLanguages() {
@@ -69,7 +103,7 @@ public class GenerateConfig {
             return Collections.emptyList();
         }
         if (request.languages != null) {
-            return Collections.emptyList();
+            return request.languages;
         }
         return request.getTemplates().stream().map(RequestTemplate::getLanguage).distinct().collect(Collectors.toList());
     }
@@ -79,5 +113,29 @@ public class GenerateConfig {
             return Collections.emptyList();
         }
         return request.getTemplates().stream().filter(o -> o.getLanguage().equalsIgnoreCase(language)).collect(Collectors.toList());
+    }
+
+    public List<String> getCodeLanguages() {
+        if (code == null) {
+            return Collections.emptyList();
+        }
+        if (code.languages != null) {
+            return Collections.emptyList();
+        }
+        return code.getTemplates().stream().map(CodeTemplate::getLanguage).distinct().collect(Collectors.toList());
+    }
+
+    public List<CodeTemplate> getCodeTemplates(@NotNull String language) {
+        if (code == null || code.getTemplates() == null) {
+            return Collections.emptyList();
+        }
+        return code.getTemplates().stream().filter(o -> o.getLanguage().equalsIgnoreCase(language)).collect(Collectors.toList());
+    }
+
+    public CodeTemplate getCodeTemplate(@NotNull String language, String name) {
+        if (code == null || code.getTemplates() == null) {
+            return null;
+        }
+        return code.getTemplates().stream().filter(o -> o.getLanguage().equalsIgnoreCase(language) && o.getName().equals(name)).findFirst().orElse(null);
     }
 }

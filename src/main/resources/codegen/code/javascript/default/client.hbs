@@ -1,0 +1,14 @@
+{{#if typesFile}}/// <reference path="{{{typesFile}}}" />{{/if}}
+import {request} from '{{{httpModule}}}';
+{{#each apis}}{{#with this}}
+
+/**
+ * {{{summary}}}{{#each pathParameters}}
+ * @param { {{{this.targetType}}} } {{{this.name}}} {{{this.description}}}{{/each}}{{#if queryModel}}
+ * @param { {{{queryModel.targetType}}} } params{{/if}}{{#if requestBody}}
+ * @param { {{{requestBody.targetType}}} } body{{/if}}{{#if responseBody}}
+ * @returns { Promise<{{#eq responseBodyType 'binary'}}Blob{{else}}{{#if responseBody.targetType}}{{{responseBody.targetType}}}{{else}}void{{/if}}{{/eq}}> }{{/if}}
+ */
+export function {{#camel operationId}}{{/camel}}({{#each pathParameters}}{{this.name}}{{#unless @last}}, {{/unless}}{{/each}}{{#if queryModel}}{{#if pathParameters}}, {{/if}}params{{/if}}{{#if requestBody}}{{#or pathParameters queryModel}}, {{/or}}body{{/if}}) {
+  return request({url: `{{#replace path '{' '${'}}{{/replace}}`, method: "{{method}}"{{#if queryModel}}, params: params{{/if}}{{#if requestBody}}, data: body{{/if}}{{#eq responseBodyType 'binary'}} ,responseType: 'blob'{{/eq}} });
+}{{/with}}{{/each}}

@@ -1,10 +1,12 @@
-{{#each models}}
-export interface {{#pascalCase this.targetType}}{{/pascalCase}} {
+{{#each models}}{{#if this.description}}/**
+ * {{{this.description}}}
+ */{{/if}}
+export {{#if useType}}type{{else}}interface{{/if}} {{{this.targetType}}} {{#if useType}}={{/if}} {
 {{#each this.properties}}{{#if this.description}}
   /**
    * {{{this.description}}}
    */{{/if}}
-  {{this.name}}{{#unless this.required}}?{{/unless}}: {{{this.targetType}}};
+  {{#if useJsNaming}}{{#camel this.name}}{{/camel}}{{else}}{{{this.name}}}{{/if}}{{#unless this.required}}?{{/unless}}: {{{this.targetType}}};
 {{/each}}
 }
 

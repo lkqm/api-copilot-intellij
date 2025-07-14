@@ -1,8 +1,24 @@
-{{#each models}}
-class {{#pascalCase this.targetType}}{{/pascalCase}} {
-{{#each this.properties}}{{#if this.description}} 
-    /// {{{this.description}}}{{/if}}
-    {{{this.targetType}}}{{#unless this.required}}?{{/unless}} {{{this.name}}};
-{{/each}}
-}
-{{/each}}
+{{#if useJson}}import 'package:json_annotation/json_annotation.dart';
+part '{{#snake this.targetType}}{{/snake}}.g.dart';{{/if}}{{#each models}}
+{{#if this.description}}
+/// {{{this.description}}}{{/if}}{{#if useJson}}
+@JsonSerializable(){{/if}}
+class {{{this.targetType}}} { {{#each this.properties}}
+
+    {{#if this.description}}/// {{{this.description}}}{{/if}}{{#if useJson}}
+    @JsonKey(name: "{{{this.name}}}"){{/if}}
+    {{{this.targetType}}}? {{#camel this.name}}{{/camel}};{{/each}}
+
+    {{{this.targetType}}}({ {{#each this.properties}}
+        this.{{#camel this.name}}{{/camel}},{{/each}}
+    });{{#if generateJson}}
+
+    factory {{{this.targetType}}}.fromJson(Map<String, dynamic> json) => {{#if useJson}}_${{{this.targetType}}}FromJson(json){{else}}{{{this.targetType}}}({{#each this.properties}}
+        {{#camel this.name}}{{/camel}}: json["{{{this.name}}}"],{{/each}}
+    ){{/if}};
+
+    Map<String, dynamic> toJson() => {{#if useJson}}_${{{this.targetType}}}ToJson(this){{else}}{ {{#each this.properties}}
+        "{{{this.name}}}": {{#camel this.name}}{{/camel}},{{/each}}
+    }{{/if}};{{/if}}
+
+}{{/each}}

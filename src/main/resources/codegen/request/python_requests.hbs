@@ -6,36 +6,17 @@ url = "http://127.0.0.1:8080{{path}}"
 method = "{{method}}"{{#if queryParameters}}
 
 params = {}{{#each queryParameters}}
-params["{{this.name}}"] = "{{this.type}}"{{/each}}{{/if}}{{#if requestBody}}
-{{#eq requestBodyType 'json'}}
+params["{{{this.name}}}"] = "{{this.type}}"{{/each}}{{/if}}{{#if requestBody}}{{#eq requestBodyType 'json'}}
 data = {{{this.requestBody.jsonExample}}}{{/eq}}{{#eq requestBodyType 'form'}}
 data = {}{{#each requestBodyForm}}
-data["{{this.name}}"] = "{{this.type}}"{{/each}}{{/eq}}{{#eq requestBodyType 'form_data'}}
+data["{{{this.name}}}"] = "{{this.type}}"{{/each}}{{/eq}}{{#eq requestBodyType 'form_data'}}
 files = {}{{#each requestBodyForm}}
-files["{{this.name}}"] = (None, "{{this.type}}"){{/each}}{{/eq}}{{#eq requestBodyType 'binary'}}
+files["{{{this.name}}}"] = (None, "{{this.type}}"){{/each}}{{/eq}}{{#eq requestBodyType 'binary'}}
 with open("path/to/your/file", "rb") as f:
-data = f.read(){{/eq}}
-{{/if}}{{#if headerParameters}}
-
+  data = f.read(){{/eq}}{{/if}}{{#if headerParameters}}
 headers = { {{#each headerParameters}}
-  "{{this.name}}": "{{this.type}}",{{/each}}
+  "{{{this.name}}}": "{{this.type}}",{{/each}}
 }{{/if}}
 
-try:
-  response = requests.request(
-    method=method,
-    url=url,{{#if queryParameters}}
-    params=params,{{/if}}{{#if requestBody}}{{#eq requestBodyType 'json'}}
-    json=data,{{/eq}}{{#eq requestBodyType 'form'}}
-    data=data,{{/eq}}{{#eq requestBodyType 'form_data'}}
-    files=files,{{/eq}}{{#eq requestBodyType 'binary'}}
-    data=data,{{/eq}}{{/if}}{{#if headerParameters}}
-    headers=headers{{/if}}
-  )
-
-  if response.status_code >= 200 and response.status_code < 300:
-    print("Response body:", response.text)
-  else:
-    print("HTTP error:", response.status_code)
-except requests.exceptions.RequestException as e:
-  print("Request error:", e)
+response = requests.request(method=method, url=url{{#if queryParameters}}, params=params{{/if}}{{#if requestBody}}{{#eq requestBodyType 'json'}}, json=data{{/eq}}{{#eq requestBodyType 'form'}}, data=data{{/eq}}{{#eq requestBodyType 'form_data'}}, files=files{{/eq}}{{#eq requestBodyType 'binary'}}, data=data{{/eq}}{{/if}}{{#if headerParameters}}, headers=headers{{/if}})
+print(response.text)

@@ -8,6 +8,15 @@
     { "type": "array", "format": null, "targetType": "%s[]" },
     { "type": "object", "format": null, "targetType": "Record<string,any>" }
   ],
+  "JavaScript": [
+    { "type": "string", "format": "binary", "targetType": "File" },
+    { "type": "string", "format": null, "targetType": "string" },
+    { "type": "integer", "format": null, "targetType": "number" },
+    { "type": "number", "format": null, "targetType": "number" },
+    { "type": "boolean", "format": null, "targetType": "boolean" },
+    { "type": "array", "format": null, "targetType": "%s[]" },
+    { "type": "object", "format": null, "targetType": "Record<string,any>" }
+  ],
   "Java": [
     { "type": "string", "format": "binary", "targetType": "byte[]" },
     { "type": "string", "format": "date", "targetType": "LocalDate" },

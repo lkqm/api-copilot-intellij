@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import io.apicopilot.model.Property;
+import io.apicopilot.model.Request;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.media.MediaType;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 
 import java.util.*;
@@ -20,10 +22,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.String.format;
 
-
 @UtilityClass
 public class OpenApiUtils {
-
 
     /**
      * 获取接口数量
@@ -123,7 +123,6 @@ public class OpenApiUtils {
         return gson.toJson(example);
     }
 
-
     private Object doGetJsonExample(Schema<?> schema) {
         if (schema == null) {
             return null;
@@ -171,7 +170,8 @@ public class OpenApiUtils {
      * 是否有请求体
      */
     public boolean hasRequestBody(Operation operation) {
-        return operation.getRequestBody() != null && operation.getRequestBody().getContent() != null && !operation.getRequestBody().getContent().isEmpty();
+        return operation.getRequestBody() != null && operation.getRequestBody().getContent() != null
+                && !operation.getRequestBody().getContent().isEmpty();
     }
 
     /**
@@ -232,5 +232,30 @@ public class OpenApiUtils {
             ref = ref.substring(ref.lastIndexOf("/") + 1);
         }
         return ref;
+    }
+
+    public List<Request> getRequests(OpenAPI openApi) {
+        List<Request> requests = new ArrayList<>();
+        openApi.getPaths().forEach((path, pathItem) -> {
+            pathItem.readOperationsMap().forEach((method, operation) -> {
+                Request request = new Request(path, method.name(), operation);
+                requests.add(request);
+            });
+        });
+        return requests;
+    }
+
+    public String getOrGenerateOperationId(Operation operation, String path, String httpMethod) {
+        if (StringUtils.isNotEmpty(operation.getOperationId())) {
+            return operation.getOperationId();
+        }
+        String tmpPath = path.replaceAll("\\{", "").replaceAll("\\}", "");
+        if (tmpPath.equals("/")) {
+            return httpMethod.toLowerCase() + "Root";
+        }
+        tmpPath = httpMethod.toLowerCase() + tmpPath;
+        // 将路径分隔符替换为空格，以便 NamedUtils.toCamelCase 能正确处理
+        tmpPath = tmpPath.replace("/", " ");
+        return NamedUtils.toCamelCase(tmpPath);
     }
 }

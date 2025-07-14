@@ -3,10 +3,12 @@ package io.apicopilot.codegen.model;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.apicopilot.codegen.core.TypeResolver;
+import io.apicopilot.util.NamedUtils;
 import io.apicopilot.util.OpenApiUtils;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import lombok.Data;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;
@@ -44,6 +46,12 @@ public class PropertyModel {
      */
     private String targetType;
 
+    /** 是否新模型 */
+    private Boolean isModel;
+
+    /** 数组新模型 */
+    private Boolean isArrayModel;
+
     public String getJsonExample() {
         if (schema == null) {
             return null;
@@ -72,6 +80,7 @@ public class PropertyModel {
             property.setMaximum(schema.getMaximum());
             property.setIsArray("array".equals(schema.getType()));
             property.setIsObject("object".equals(schema.getType()));
+
             property.setTargetType(typeResolver.resolve(schema.getType(), schema.getFormat()));
         }
         return property;
@@ -120,8 +129,10 @@ public class PropertyModel {
                 refType = defaultObjectType;
             }
             if (StringUtils.isNotEmpty(refType)) {
+                refType = NamedUtils.toPascalCase(refType);
                 targetType = refType;
             }
+            property.setIsModel(true);
 
             String finalTargetType = targetType;
             List<PropertyModel> properties = schema.getProperties().entrySet().stream()
@@ -139,6 +150,9 @@ public class PropertyModel {
             property.setItems(p);
             if (targetType != null) {
                 targetType = String.format(targetType, p.getTargetType());
+            }
+            if(BooleanUtils.isTrue(p.isModel)) {
+                property.setIsArrayModel(true);
             }
         }
         property.setTargetType(targetType);

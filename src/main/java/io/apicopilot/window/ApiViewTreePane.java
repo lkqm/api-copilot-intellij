@@ -173,6 +173,7 @@ public class ApiViewTreePane extends JBScrollPane {
         OpenAPI openApi = document.getOpenApi();
         DocumentNode.Context documentContext = DocumentNode.Context.builder()
                 .treePane(this)
+                .project(project)
                 .document(document)
                 .apiCounts(OpenApiUtils.countApi(openApi))
                 .build();
@@ -192,6 +193,7 @@ public class ApiViewTreePane extends JBScrollPane {
                             .project(project)
                             .document(document)
                             .request(request)
+                            .tree(tree)
                             .build();
                     RequestNode requestNode = new RequestNode(HttpMethodIcons.getHttpMethodIcon(method.name()), requestContext);
                     if (operation.getTags() != null && !operation.getTags().isEmpty()) {

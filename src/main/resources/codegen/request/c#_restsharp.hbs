@@ -1,14 +1,14 @@
 var client = new RestClient("http://127.0.0.1:8080");
 var request = new RestRequest("{{{path}}}", Method.{{method}});{{#eq requestBodyType 'form_data'}}
 request.AlwaysMultipartFormData = true;{{/eq}}{{#each headerParameters}}
-request.AddHeader("{{this.name}}", "{{this.type}}");{{/each}}{{#each queryParameters}}
-request.AddQueryParameter("{{this.name}}", "{{this.type}}");{{/each}}{{#each requestBodyForm}}
-request.AddParameter("{{this.name}}", "{{this.type}}");{{/each}}{{#eq requestBodyType 'json'}}
+request.AddHeader("{{{this.name}}}", "{{this.type}}");{{/each}}{{#each queryParameters}}
+request.AddQueryParameter("{{{this.name}}}", "{{this.type}}");{{/each}}{{#each requestBodyForm}}
+request.AddParameter("{{{this.name}}}", "{{this.type}}");{{/each}}{{#eq requestBodyType 'json'}}
 var body = """
 {{{this.requestBody.jsonExample}}}
 """;
 request.AddStringBody(body, DataFormat.Json);{{/eq}}{{#eq requestBodyType 'binary'}}
 byte[] bytes = File.ReadAllBytes("path/to/file.jpg");
-request.AddBody(bytes, ContentType.Binary);{{/eq}}
+request.AddParameter("application/octet-stream", bytes, ParameterType.RequestBody);{{/eq}}
 var response = client.Execute(request);
 Console.WriteLine(response.Content);

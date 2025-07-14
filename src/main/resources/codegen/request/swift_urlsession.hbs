@@ -7,20 +7,20 @@ let method = "{{method}}"{{#if queryParameters}}
 
 var components = URLComponents(string: urlString)!
 components.queryItems = [{{#each queryParameters}}
-    URLQueryItem(name: "{{this.name}}", value: "{{this.type}}"),{{/each}}
+    URLQueryItem(name: "{{{this.name}}}", value: "{{this.type}}"),{{/each}}
 ]{{/if}}{{#if requestBody}}
 {{#eq requestBodyType 'json'}}
 let jsonData = """
 {{{this.requestBody.jsonExample}}}
 """.data(using: .utf8){{/eq}}{{#eq requestBodyType 'form'}}
 let formData = [{{#each requestBodyForm}}
-    "{{this.name}}": "{{this.type}}",{{/each}}
+    "{{{this.name}}}": "{{this.type}}",{{/each}}
 ]
 let bodyData = formData.compactMap { "\($0.key)=\($0.value)" }.joined(separator: "&").data(using: .utf8){{/eq}}{{#eq requestBodyType 'form_data'}}
 let boundary = "Boundary-\(UUID().uuidString)"
 var bodyData = Data(){{#each requestBodyForm}}
 bodyData.append("--\(boundary)\r\n".data(using: .utf8)!)
-bodyData.append("Content-Disposition: form-data; name=\"{{this.name}}\"\r\n\r\n".data(using: .utf8)!)
+bodyData.append("Content-Disposition: form-data; name=\"{{{this.name}}}\"\r\n\r\n".data(using: .utf8)!)
 bodyData.append("{{this.type}}\r\n".data(using: .utf8)!){{/each}}
 bodyData.append("--\(boundary)--\r\n".data(using: .utf8)!){{/eq}}{{#eq requestBodyType 'binary'}}
 guard let fileData = NSData(contentsOfFile: "path/to/your/file") else {
@@ -31,7 +31,7 @@ let bodyData = fileData as Data{{/eq}}
 {{/if}}{{#if headerParameters}}
 
 let headers = [{{#each headerParameters}}
-"{{this.name}}": "{{this.type}}",{{/each}}
+"{{{this.name}}}": "{{this.type}}",{{/each}}
 ]{{/if}}{{#if queryParameters}}
 guard let url = components.url else {
     print("Error: Invalid URL")

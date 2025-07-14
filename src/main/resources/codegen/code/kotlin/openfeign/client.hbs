@@ -1,0 +1,21 @@
+{{#if clientPackage}}package {{{clientPackage}}};{{/if}}
+
+import java.util.List
+import java.util.Map
+import feign.Response
+import org.springframework.cloud.openfeign.FeignClient
+import org.springframework.cloud.openfeign.SpringQueryMap
+import org.springframework.web.bind.annotation.*{{#if modelPackage}}
+import {{{modelPackage}}}.*;
+{{/if}}
+
+@FeignClient(name = "{{{serviceName}}}"{{#if serviceUrl}}, url = "{{{serviceUrl}}}"{{/if}})
+interface {{{clientClassName}}}{ {{#each apis}}{{#with this}}
+
+    /**
+     * {{{summary}}}
+     */
+    @{{#pascal method}}{{/pascal}}Mapping("{{path}}")
+    fun {{#camel operationId}}{{/camel}}({{#each pathParameters}}@PathVariable("{{this.name}}") {{{this.targetType}}} {{#camel this.name}}{{/camel}}{{#unless @last}}, {{/unless}}{{/each}}{{#if queryModel}}{{#if pathParameters}}, {{/if}}@SpringQueryMap {{{queryModel.targetType}}} params{{/if}}{{#if requestBody}}{{#or pathParameters queryModel}}, {{/or}}@RequestBody {{{requestBody.targetType}}} body{{/if}}): {{#eq responseBodyType 'binary'}}Response{{else}}{{#if responseBody.targetType}}{{{responseBody.targetType}}}{{else}}void{{/if}}{{/eq}} {{/with}}{{/each}}
+
+}

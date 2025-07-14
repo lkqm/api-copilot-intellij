@@ -1,10 +1,25 @@
-{{#each models}}
-data class {{#pascalCase this.targetType}}{{/pascalCase}}(
-{{#each this.properties}}{{#if this.description}}
+{{#if modelPackage}}package {{{modelPackage}}}{{/if}}
+
+import java.time.*
+import java.util.List
+import java.util.Map{{#eq serializer "jackson"}}
+import com.fasterxml.jackson.annotation.JsonProperty{{/eq}}{{#eq serializer "gson"}}
+import com.google.gson.annotations.SerializedName{{/eq}}{{#eq serializer "klaxon"}}
+import com.beust.klaxon.Json{{/eq}}{{#eq serializer "kotlinx"}}
+import kotlinx.serialization.SerialName{{/eq}}{{#each models}}
+{{#if this.description}}
+/**
+ * {{{this.description}}}
+ */{{/if}}
+data class {{{this.targetType}}} { {{#each this.properties}}
+{{#if this.description}}
     /**
      * {{{this.description}}}
-     */{{/if}}
-    val {{this.name}}: {{{this.targetType}}}{{#unless this.required}}?{{/unless}}{{#unless @last}},{{/unless}}
-{{/each}}
-)
-{{/each}}
+     */{{/if}}{{#eq serializer 'jackson'}}
+    @JsonProperty("{{{this.name}}}"){{/eq}}{{#eq serializer 'gson'}}
+    @SerializedName("{{{this.name}}}"){{/eq}}{{#eq serializer 'klaxon'}}
+    @Json(name="{{{this.name}}}"){{/eq}}{{#eq serializer 'kotlinx'}}
+    @SerialName("{{{this.name}}}"){{/eq}}
+    val {{#camel this.name}}{{/camel}}: {{{this.targetType}}}{{#unless this.required}}?{{/unless}}{{#unless @last}},{{/unless}}{{/each}}
+
+}{{/each}}

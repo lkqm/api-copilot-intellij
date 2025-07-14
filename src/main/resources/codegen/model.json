@@ -1,0 +1,178 @@
+[
+  {
+    "language": "C#",
+    "options": [
+      {
+        "name": "namespace",
+        "type": "text",
+        "label": "Namespace",
+        "required": false,
+        "defaultValue": "Model"
+      },
+      {
+        "name": "serializer",
+        "type": "list",
+        "label": "Serialization",
+        "required": false,
+        "defaultValue": "SystemTextJson",
+        "values": [
+          { "value":  "None" },
+          { "value":  "SystemTextJson" },
+          { "value":  "NewtonSoft" }
+        ]
+      }
+    ]
+  },
+  {
+    "language": "Dart",
+    "options": [
+      {
+        "name": "useJson",
+        "type": "boolean",
+        "label": "Use json_serializable",
+        "required": false,
+        "defaultValue": "true"
+      },
+      {
+        "name": "generateJson",
+        "type": "boolean",
+        "label": "Generate json method",
+        "required": false,
+        "defaultValue": "true"
+      }
+    ]
+  },
+  {
+    "language": "Go",
+    "options": [
+      {
+        "name": "package",
+        "type": "text",
+        "label": "Package Name",
+        "required": false,
+        "defaultValue": "model"
+      },
+      {
+        "name": "useJson",
+        "type": "boolean",
+        "label": "Use json tag",
+        "required": false,
+        "defaultValue": "true"
+      }
+    ]
+  },
+  {
+    "language": "Java",
+    "options": [
+      {
+        "name": "modelPackage",
+        "type": "text",
+        "label": "Package Name",
+        "required": false,
+        "defaultValue": "model"
+      },
+      {
+        "name": "useLombok",
+        "type": "boolean",
+        "label": "Use lombok",
+        "required": false,
+        "defaultValue": "true"
+      },
+      {
+        "name": "serializer",
+        "type": "list",
+        "label": "Serialization",
+        "required": false,
+        "defaultValue": "jackson",
+        "values": [
+          { "value":  "none" },
+          { "value":  "jackson" },
+          { "value":  "gson" }
+        ]
+      }
+    ]
+  },
+  {
+    "language": "Kotlin",
+    "options": [
+      {
+        "name": "modelPackage",
+        "type": "text",
+        "label": "Package Name",
+        "required": false,
+        "defaultValue": "model"
+      },
+      {
+        "name": "serializer",
+        "type": "list",
+        "label": "Serialization",
+        "required": false,
+        "defaultValue": "jackson",
+        "values": [
+          { "value":  "none" },
+          { "value":  "jackson" },
+          { "value":  "klaxon" },
+          { "value":  "kotlinx" }
+        ]
+      }
+    ]
+  },
+  {
+    "language": "Python",
+    "options": [
+      {
+        "name": "usePyNaming",
+        "type": "boolean",
+        "label": "Use Python-style names",
+        "required": false,
+        "defaultValue": "false"
+      }
+    ]
+  },
+  {
+    "language": "Swift",
+    "options": [
+      {
+        "name": "useSwiftStyle",
+        "type": "boolean",
+        "label": "Use Swift-style names",
+        "required": false,
+        "defaultValue": true,
+        "hidden": true
+      },
+      {
+        "name": "declareCodingKey",
+        "type": "boolean",
+        "label": "Declare CodingKey",
+        "required": false,
+        "defaultValue": true
+      },
+      {
+        "name": "useClass",
+        "type": "boolean",
+        "label": "Use class",
+        "required": false,
+        "defaultValue": "false"
+      }
+    ]
+  },
+  {
+    "language": "TypeScript",
+    "options": [
+      {
+        "name": "useJsNaming",
+        "type": "boolean",
+        "label": "Use JavaScript-style names",
+        "required": false,
+        "defaultValue": "false"
+      },
+      {
+        "name": "useType",
+        "type": "boolean",
+        "label": "Use type",
+        "required": false,
+        "defaultValue": "false"
+      }
+    ]
+  }
+]

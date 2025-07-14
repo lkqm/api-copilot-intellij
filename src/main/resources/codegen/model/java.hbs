@@ -1,14 +1,30 @@
-{{#each models}}{{#if this.description}}
+{{#if modelPackage}}package {{{modelPackage}}};
+{{/if}}import java.time.*;
+import java.util.List;
+import java.util.Map;{{#eq serializer 'jackson'}}
+import com.fasterxml.jackson.annotation.JsonProperty;{{/eq}}{{#eq serializer 'gson'}}
+import com.google.gson.annotations.SerializedName;{{/eq}}{{#if useLombok}}
+import lombok.Data;{{/if}}{{#each models}}
+{{#if this.description}}
 /**
  * {{{this.description}}}
- */{{/if}}
-@Data
-public class {{#pascalCase this.targetType}}{{/pascalCase}} {
-{{#each this.properties}}{{#if this.description}}
+ */{{/if}}{{#if useLombok}}
+@Data{{/if}}
+public class {{{this.targetType}}} { {{#each this.properties}}
+{{#if this.description}}
     /**
      * {{{this.description}}}
-     */{{/if}}
-    private {{{this.targetType}}} {{#camelCase this.name}}{{/camelCase}};
-{{/each}}
-}
-{{/each}}
+     */{{/if}}{{#eq serializer 'jackson'}}
+    @JsonProperty("{{{this.name}}}"){{/eq}}{{#eq serializer 'gson'}}
+    @SerializedName("{{{this.name}}}"){{/eq}}
+    private {{{this.targetType}}} {{#camel this.name}}{{/camel}};{{/each}}{{#unless useLombok}}{{#each this.properties}}
+
+    public {{{this.targetType}}} get{{#pascal this.name}}{{/pascal}}() {
+        return this.{{#camel this.name}}{{/camel}};
+    }
+
+    public void set{{#pascal this.name}}{{/pascal}}({{{this.targetType}}} {{#camel this.name}}{{/camel}}) {
+        this.{{#camel this.name}}{{/camel}} = {{#camel this.name}}{{/camel}};
+    }{{/each}}{{/unless}}
+
+}{{/each}}

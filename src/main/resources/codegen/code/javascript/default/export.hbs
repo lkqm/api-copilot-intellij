@@ -1,0 +1,2 @@
+{{#each files}}{{#eq this.type 'client'}}export * from '{{#toJsModule this.path}}{{/toJsModule}}'
+{{/eq}}{{/each}}

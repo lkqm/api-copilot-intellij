@@ -1,0 +1,10 @@
+import {request} from '{{{httpModule}}}';
+import * as types from '{{#toJsModule typesFile}}{{/toJsModule}}';
+{{#each apis}}{{#with this}}
+
+/**
+ * {{{summary}}}
+ */
+export function {{#camel operationId}}{{/camel}}({{#each pathParameters}}{{this.name}}: {{{this.targetType}}}{{#unless @last}}, {{/unless}}{{/each}}{{#if queryModel}}{{#if pathParameters}}, {{/if}}params: types.{{queryModel.targetType}}{{/if}}{{#if requestBody}}{{#or pathParameters queryModel}}, {{/or}}body: {{#or requestBody.isModel requestBody.isArrayModel}}types.{{/or}}{{requestBody.targetType}}{{/if}}): Promise<{{#eq responseBodyType 'binary'}}Blob{{else}}{{#or responseBody.isModel responseBody.isArrayModel}}types.{{/or}}{{#if responseBody.targetType}}{{{responseBody.targetType}}}{{else}}void{{/if}}{{/eq}}> {
+  return request({url: `{{#replace path '{' '${'}}{{/replace}}`, method: "{{method}}"{{#if queryModel}}, params: params{{/if}}{{#if requestBody}}, data: body{{/if}}{{#eq responseBodyType 'binary'}} ,responseType: 'blob'{{/eq}} });
+}{{/with}}{{/each}}

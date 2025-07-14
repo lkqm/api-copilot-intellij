@@ -3,6 +3,7 @@ package io.apicopilot.window.tree;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.JBMenuItem;
 import com.intellij.openapi.ui.JBPopupMenu;
+import io.apicopilot.codegen.ui.GenerateCodeDialog;
 import io.apicopilot.codegen.ui.GenerateModelDialog;
 import io.apicopilot.codegen.ui.GenerateRequestDialog;
 import io.apicopilot.document.Document;
@@ -10,6 +11,7 @@ import io.apicopilot.model.Request;
 import io.apicopilot.util.ClipboardUtils;
 import io.apicopilot.util.MarkdownGenerator;
 import io.apicopilot.util.OpenApiUtils;
+import io.apicopilot.util.TreeUtils;
 import io.swagger.v3.oas.models.Operation;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,6 +20,8 @@ import lombok.NonNull;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Request node.
@@ -80,7 +84,6 @@ public class RequestNode extends ApiViewNode<RequestNode.Context> {
         });
         popupMenu.add(generateRequestItem);
 
-
         return popupMenu;
     }
 
@@ -116,5 +119,8 @@ public class RequestNode extends ApiViewNode<RequestNode.Context> {
 
         @NonNull
         private Document document;
+
+        @NonNull
+        private JTree tree;
     }
 }

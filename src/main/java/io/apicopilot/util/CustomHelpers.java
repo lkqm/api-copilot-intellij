@@ -1,45 +1,65 @@
 package io.apicopilot.util;
 
+import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Helper;
 import com.github.jknack.handlebars.Options;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 
 public enum CustomHelpers implements Helper<Object> {
 
-    camelCase {
+    camel {
         @Override
         public CharSequence apply(Object value, Options options) throws IOException {
-            return toCamelCase(value.toString());
+            if (value == null) {
+                return "";
+            }
+            return NamedUtils.toCamelCase(value.toString());
         }
     },
-    pascalCase {
+    pascal {
         @Override
         public CharSequence apply(Object value, Options options) throws IOException {
-            return toPascalCase(value.toString());
+            if (value == null) {
+                return "";
+            }
+            return NamedUtils.toPascalCase(value.toString());
         }
     },
-    snakeCase {
+    snake {
         @Override
         public CharSequence apply(Object value, Options options) throws IOException {
-            return toSnakeCase(value.toString());
+            if (value == null) {
+                return "";
+            }
+            return NamedUtils.toSnakeCase(value.toString());
         }
     },
-    kebabCase {
+    kebab {
         @Override
         public CharSequence apply(Object value, Options options) throws IOException {
-            return toKebabCase(value.toString());
+            if (value == null) {
+                return "";
+            }
+            return NamedUtils.toKebabCase(value.toString());
         }
     },
-    upperCase {
+    upper {
         @Override
         public CharSequence apply(Object value, Options options) throws IOException {
+            if (value == null) {
+                return "";
+            }
             return value.toString().toUpperCase();
         }
     },
-    lowerCase {
+    lower {
         @Override
         public CharSequence apply(Object value, Options options) throws IOException {
+            if (value == null) {
+                return "";
+            }
             return value.toString().toLowerCase();
         }
     },
@@ -59,47 +79,40 @@ public enum CustomHelpers implements Helper<Object> {
 
             return options.inverse(value);
         }
-    };
-
-    private static String[] splitWords(String input) {
-        String normalized = input
-                .replace("-", " ")
-                .replace("_", " ")
-                .replaceAll("([a-z])([A-Z])", "$1 $2");
-        return normalized.trim().split("\\s+");
-    }
-
-    private static String toCamelCase(String input) {
-        String pascal = toPascalCase(input);
-        if (pascal.isEmpty()) {
-            return pascal;
+    },
+    replace {
+        @Override
+        public CharSequence apply(Object value, Options options) throws IOException {
+            String target = options.param(0, null);
+            String replacement = options.param(1, null);
+            String result = value.toString().replace(target, replacement);
+            return new Handlebars.SafeString(result);
         }
-        return pascal.substring(0, 1).toLowerCase() + pascal.substring(1);
-    }
-
-    private static String toPascalCase(String input) {
-        StringBuilder sb = new StringBuilder();
-        for (String part : splitWords(input)) {
-            if (!part.isEmpty()) {
-                sb.append(part.substring(0, 1).toUpperCase());
-                sb.append(part.substring(1).toLowerCase());
+    },
+    removeStart {
+        @Override
+        public CharSequence apply(Object value, Options options) throws IOException {
+            if(value == null) {
+                return "";
             }
+            String target = options.param(0, null);
+            return StringUtils.removeStart(value.toString(), target);
         }
-        return sb.toString();
-    }
-
-    private static String toSnakeCase(String input) {
-        return String.join("_", splitWords(input)).toLowerCase();
-    }
-
-    private static String toKebabCase(String input) {
-        return String.join("-", splitWords(input)).toLowerCase();
-    }
-
-    private static String capitalizeFirst(String input) {
-        if (input == null || input.isEmpty()) {
-            return input;
+    },
+    toJsModule {
+        @Override
+        public Object apply(Object value, Options options) throws IOException {
+            if (value == null) return "";
+            String path = value.toString().replace("\\", "/");
+            if (path.startsWith("src/")) {
+                path = "@" + path.substring(3);
+            }
+            int lastDot = path.lastIndexOf('.');
+            if (lastDot > path.lastIndexOf('/')) {
+                path = path.substring(0, lastDot);
+            }
+            return new Handlebars.SafeString(path);
         }
-        return input.substring(0, 1).toUpperCase() + input.substring(1).toLowerCase();
     }
+    ;
 }

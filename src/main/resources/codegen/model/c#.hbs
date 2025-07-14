@@ -1,14 +1,20 @@
-{{#each models}}{{#if this.description}}
+{{#if namespace}}namespace {{{namespace}}};
+{{/if}}using System;
+using System.Collections.Generic;{{#eq serializer 'NewtonSoft'}}
+using Newtonsoft.Json;{{/eq}}{{#eq serializer 'SystemTextJson'}}
+using System.Text.Json.Serialization;{{/eq}}{{#each models}}
+{{#if this.description}}
 /// <summary>
 /// {{{this.description}}}
 /// </summary>{{/if}}
-public class {{#pascalCase this.targetType}}{{/pascalCase}}
-{
-{{#each this.properties}}{{#if this.description}}
+public class {{{this.targetType}}}
+{ {{#each this.properties}}
+{{#if this.description}}
     /// <summary>
     /// {{{this.description}}}
-    /// </summary>{{/if}}
-    public {{{this.targetType}}}{{#unless this.required}}?{{/unless}} {{#pascalCase this.name}}{{/pascalCase}} { get; set; };
-{{/each}}
-}
-{{/each}}
+    /// </summary>{{/if}}{{#eq serializer 'NewtonSoft'}}
+    [JsonProperty("{{{this.name}}}"]{{/eq}}{{#eq serializer 'SystemTextJson'}}
+    [JsonPropertyName("{{{this.name}}}")]{{/eq}}
+    public {{{this.targetType}}}? {{#pascal this.name}}{{/pascal}} { get; set; } {{/each}}
+
+}{{/each}}

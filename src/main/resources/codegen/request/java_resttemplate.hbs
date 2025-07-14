@@ -1,48 +1,30 @@
-import org.springframework.web.client.RestTemplate;
-import org.springframework.http.*;
-import org.springframework.web.util.UriComponentsBuilder;{{#eq requestBodyType 'form'}}
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;{{/eq}}{{#eq requestBodyType 'form_data'}}
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.core.io.FileSystemResource;
-import java.io.File;{{/eq}}{{#eq requestBodyType 'binary'}}
-import org.springframework.core.io.FileSystemResource;
-import java.io.File;{{/eq}}
-import java.util.Collections;
-
 RestTemplate restTemplate = new RestTemplate();
-
 String url = "http://127.0.0.1:8080{{path}}";{{#if queryParameters}}
-
 UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url);{{#each queryParameters}}
-builder.queryParam("{{this.name}}", "{{this.type}}");{{/each}}
+builder.queryParam("{{{this.name}}}", "{{this.type}}");{{/each}}
 url = builder.toUriString();{{/if}}
-
 HttpHeaders headers = new HttpHeaders();{{#each headerParameters}}
-headers.set("{{this.name}}", "{{this.type}}");{{/each}}{{#if requestBody}}
-{{#eq requestBodyType 'json'}}
+headers.set("{{{this.name}}}", "{{this.type}}");{{/each}}{{#if requestBody}}{{#eq requestBodyType 'json'}}
 headers.setContentType(MediaType.APPLICATION_JSON);
-String jsonString = """
+String json = """
 {{{this.requestBody.jsonExample}}}
 """;
-HttpEntity<String> requestEntity = new HttpEntity<>(jsonString, headers);{{/eq}}{{#eq requestBodyType 'form'}}
+HttpEntity<String> requestEntity = new HttpEntity<>(json, headers);{{/eq}}{{#eq requestBodyType 'form'}}
 headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();{{#each requestBodyForm}}
-formData.add("{{this.name}}", "{{this.type}}");{{/each}}
+formData.add("{{{this.name}}}", "{{this.type}}");{{/each}}
 HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);{{/eq}}{{#eq requestBodyType 'form_data'}}
 headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();{{#each requestBodyForm}}
-formData.add("{{this.name}}", "{{this.type}}");{{/each}}
+MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();{{#each requestBodyForm}}{{#neq this.type 'file'}}
+formData.add("{{{this.name}}}", "{{this.type}}");{{else}}formData.add("{{{this.name}}}", new FileSystemResource(new File("/path/to/file.jpg")));{{/neq}}{{/each}}
 HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(formData, headers);{{/eq}}{{#eq requestBodyType 'binary'}}
 headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
 File file = new File("path/to/your/file");
 FileSystemResource fileResource = new FileSystemResource(file);
 HttpEntity<FileSystemResource> requestEntity = new HttpEntity<>(fileResource, headers);{{/eq}}{{else}}
 HttpEntity<Void> requestEntity = new HttpEntity<>(headers);{{/if}}
-
 try {
-    ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.{{method}}, requestEntity, String.class);
+    ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.{{#upper method}}{{/upper}}, requestEntity, String.class);
     if (response.getStatusCode().is2xxSuccessful()) {
         System.out.println("Response body: " + response.getBody());
     } else {

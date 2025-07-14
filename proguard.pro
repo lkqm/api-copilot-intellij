@@ -8,6 +8,7 @@
 
 # model or config
 -keep class io.apicopilot.codegen.model.** { *; }
+-keep class io.apicopilot.codegen.context.** { *; }
 
 # plugin.xml
 -keep class io.apicopilot.window.ApiView { *; }
