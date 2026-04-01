@@ -21,12 +21,14 @@ public class SwaggerHubDocumentEditForm implements DocumentEditForm {
     private JTextField ownerField;
     private JTextField apiField;
     private JTextField versionField;
+    private JCheckBox autoRefreshCheckBox;
     private Document document;
 
     @Override
     public void set(@NotNull Document data) {
         this.document = data;
         nameField.setText(data.getName());
+        autoRefreshCheckBox.setSelected(data.isAutoRefresh());
         Document.SwaggerHubConfig swaggerHubConfig = data.getSwaggerHubConfig();
         if (swaggerHubConfig != null) {
             serviceUrlField.setText(swaggerHubConfig.getServiceUrl());
@@ -48,6 +50,7 @@ public class SwaggerHubDocumentEditForm implements DocumentEditForm {
 
         // Name
         data.setName(nameField.getText().trim());
+        data.setAutoRefresh(autoRefreshCheckBox.isSelected());
 
         Document.SwaggerHubConfig swaggerHubConfig = data.getSwaggerHubConfig();
         if (swaggerHubConfig == null) {
