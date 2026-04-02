@@ -8,8 +8,10 @@ import io.apicopilot.util.HttpUtils;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
@@ -40,7 +42,7 @@ public class OpenAPIApiResolver extends AbstractApiResolver {
                 String content = HttpUtils.downloadText(path, Duration.ofSeconds(10));
                 return ResolveResult.ok(content);
             } catch (IOException e) {
-                return ResolveResult.fail("download file failed:" + e.getMessage());
+                return ResolveResult.fail("download file failed: " + ExceptionUtils.getMessage(e));
             }
         } else {
             VirtualFile projectDir = ProjectUtil.guessProjectDir(project);
@@ -51,7 +53,7 @@ public class OpenAPIApiResolver extends AbstractApiResolver {
                     return ResolveResult.ok(content);
                 }
             }
-            return ResolveResult.fail("relative file not exists: " + path);
+            return ResolveResult.fail("file not exists: " + path);
         }
     }
 

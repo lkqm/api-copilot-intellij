@@ -5,6 +5,7 @@ import io.apicopilot.util.HttpUtils;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -46,7 +47,7 @@ public class SwaggerHubApiResolver extends AbstractApiResolver {
             byte[] data = HttpUtils.get(url, headers, Duration.ofSeconds(10));
             return ResolveResult.ok(new String(data, StandardCharsets.UTF_8));
         } catch (IOException e) {
-            return ResolveResult.fail("download file failed:" + e.getMessage());
+            return ResolveResult.fail("download file failed: " + ExceptionUtils.getMessage(e));
         }
     }
 

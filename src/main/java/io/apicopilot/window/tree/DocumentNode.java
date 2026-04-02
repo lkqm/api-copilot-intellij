@@ -11,7 +11,9 @@ import io.apicopilot.codegen.ui.GenerateCodeDialog;
 import io.apicopilot.document.Document;
 import io.apicopilot.document.DocumentManager;
 import io.apicopilot.document.DocumentRepository;
+import io.apicopilot.document.LoadResult;
 import io.apicopilot.model.Request;
+import io.apicopilot.util.NotificationUtils;
 import io.apicopilot.util.OpenApiUtils;
 import io.apicopilot.window.ApiViewTreePane;
 import io.apicopilot.window.dialog.DocumentEditDialog;
@@ -45,7 +47,11 @@ public class DocumentNode extends ApiViewNode<DocumentNode.Context> {
                 data.getTreePane().refreshDocumentNode(document, false);
 
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    DocumentManager.getInstance(project).reloadDocument(document);
+                    DocumentManager documentManager = DocumentManager.getInstance(project);
+                    LoadResult loadResult = documentManager.reloadDocument(document);
+                    if (!loadResult.isSuccess()) {
+                        NotificationUtils.notifyError("Refresh document failed", loadResult.getFailReason());
+                    }
                 });
             });
             menu.add(reloadItem);

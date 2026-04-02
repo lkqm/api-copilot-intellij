@@ -59,15 +59,13 @@ public class DocumentManager {
     /**
      * 重新加载文档
      */
-    public void reloadDocument(Document document) {
+    public LoadResult reloadDocument(Document document) {
         LoadResult result = doLoadDocument(document, true);
-        if (!result.isSuccess()) {
-            NotificationUtils.notifyError("Load document failed", result.getFailReason());
-        }
 
         // publish
         DocumentTopic topic = project.getMessageBus().syncPublisher(DocumentTopic.TOPIC);
         topic.onLoaded(document, result);
+        return result;
     }
 
     private LoadResult doLoadDocument(Document document, boolean reload) {

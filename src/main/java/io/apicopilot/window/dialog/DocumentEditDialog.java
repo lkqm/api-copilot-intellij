@@ -4,11 +4,9 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.ValidationInfo;
-import io.apicopilot.document.Document;
-import io.apicopilot.document.DocumentManager;
-import io.apicopilot.document.DocumentRepository;
-import io.apicopilot.document.DocumentSourceType;
+import io.apicopilot.document.*;
 import io.apicopilot.document.topic.DocumentTopic;
+import io.apicopilot.util.NotificationUtils;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -72,7 +70,10 @@ public class DocumentEditDialog extends DialogWrapper {
         // async load document
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             DocumentManager manager = DocumentManager.getInstance(project);
-            manager.reloadDocument(document);
+            LoadResult loadResult = manager.reloadDocument(document);
+            if (!loadResult.isSuccess()) {
+                NotificationUtils.notifyError("Load document failed", loadResult.getFailReason());
+            }
         });
     }
 

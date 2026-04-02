@@ -1,16 +1,17 @@
 package io.apicopilot.window;
 
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.concurrency.AppExecutorUtil;
 import io.apicopilot.document.Document;
 import io.apicopilot.document.DocumentManager;
 import io.apicopilot.document.LoadResult;
 import io.apicopilot.model.Request;
+import io.apicopilot.util.NotificationUtils;
 import io.apicopilot.window.support.PreviewState;
 import io.apicopilot.window.tree.RequestNode;
 import lombok.Getter;
@@ -24,7 +25,10 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * API view content panel.
@@ -140,16 +144,37 @@ public class ApiViewPanel extends SimpleToolWindowPanel {
      * 刷新面板.
      */
     public void refresh() {
-        List<Document> documents = DocumentManager.getInstance(project).getDocuments();
-        for (Document document : documents) {
-            document.setLoading(true);
-            DumbService.getInstance(project).runWhenSmart(() -> {
-                treePane.refreshDocumentNode(document, false);
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    DocumentManager.getInstance(project).reloadDocument(document);
-                });
-            });
+        DocumentManager manager = DocumentManager.getInstance(project);
+        List<Document> documents = manager.getDocuments();
+        if (documents.isEmpty()) {
+            return;
         }
+
+        DumbService.getInstance(project).runWhenSmart(() -> {
+            documents.forEach(document -> {
+                document.setLoading(true);
+                treePane.refreshDocumentNode(document, false);
+            });
+            List<CompletableFuture<LoadResult>> futures = documents.stream()
+                    .map(document -> CompletableFuture.supplyAsync(
+                            () -> manager.reloadDocument(document),
+                            AppExecutorUtil.getAppExecutorService()))
+                    .collect(Collectors.toList());
+
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .thenRun(() -> {
+                        List<String> failures = new ArrayList<>();
+                        for (int i = 0; i < documents.size(); i++) {
+                            LoadResult result = futures.get(i).join();
+                            if (!result.isSuccess()) {
+                                failures.add(documents.get(i).getName() + ": " + result.getFailReason());
+                            }
+                        }
+                        if (!failures.isEmpty()) {
+                            NotificationUtils.notifyError("Refresh document failed", String.join("\n", failures));
+                        }
+                    });
+        });
     }
 
     /**
