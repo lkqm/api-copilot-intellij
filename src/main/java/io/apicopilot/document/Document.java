@@ -68,12 +68,6 @@ public class Document {
      */
     private boolean loading;
 
-    /**
-     * 打开项目时是否自动刷新
-     */
-    private boolean autoRefresh = false;
-
-
     @Transient
     public OpenAPI getOpenApi() {
         return openApi;

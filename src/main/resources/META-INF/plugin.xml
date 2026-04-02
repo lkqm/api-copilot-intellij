@@ -38,8 +38,6 @@
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="API Copilot" displayType="BALLOON"/>
 
-        <postStartupActivity implementation="io.apicopilot.startup.AutoRefreshStartupActivity"/>
-
         <projectService serviceInterface="io.apicopilot.window.ApiView"
                         serviceImplementation="io.apicopilot.window.ApiViewImpl"/>
         <!-- 视图窗口 -->

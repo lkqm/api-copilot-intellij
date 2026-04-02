@@ -7,7 +7,8 @@ import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
 
 /**
  * Document edit form.
@@ -19,14 +20,12 @@ public class ApifoxDocumentEditForm implements DocumentEditForm {
     private JTextField serviceUrlField;
     private JTextField accessTokenField;
     private JTextField projectIdField;
-    private JCheckBox autoRefreshCheckBox;
     private Document document;
 
     @Override
     public void set(@NotNull Document data) {
         this.document = data;
         nameField.setText(data.getName());
-        autoRefreshCheckBox.setSelected(data.isAutoRefresh());
         Document.ApifoxConfig apifoxConfig = data.getApifoxConfig();
         if (apifoxConfig != null) {
             serviceUrlField.setText(apifoxConfig.getServiceUrl());
@@ -46,7 +45,6 @@ public class ApifoxDocumentEditForm implements DocumentEditForm {
 
         // Name
         data.setName(nameField.getText().trim());
-        data.setAutoRefresh(autoRefreshCheckBox.isSelected());
 
         Document.ApifoxConfig apifoxConfig = data.getApifoxConfig();
         if (apifoxConfig == null) {

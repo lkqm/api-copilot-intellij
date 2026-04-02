@@ -7,7 +7,8 @@ import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
 
 /**
  * Document edit form.
@@ -17,14 +18,12 @@ public class OpenApiDocumentEditForm implements DocumentEditForm {
     private JTextField openApiFileField;
     private JPanel panel;
     private JTextField nameField;
-    private JCheckBox autoRefreshCheckBox;
     private Document document;
 
     @Override
     public void set(@NotNull Document data) {
         this.document = data;
         nameField.setText(data.getName());
-        autoRefreshCheckBox.setSelected(data.isAutoRefresh());
         Document.OpenApiConfig config = data.getOpenApiConfig();
         if (config != null) {
             openApiFileField.setText(config.getPath());
@@ -41,7 +40,6 @@ public class OpenApiDocumentEditForm implements DocumentEditForm {
         }
 
         data.setName(nameField.getText().trim());
-        data.setAutoRefresh(autoRefreshCheckBox.isSelected());
         if (data.getOpenApiConfig() == null) {
             data.setOpenApiConfig(new Document.OpenApiConfig());
         }

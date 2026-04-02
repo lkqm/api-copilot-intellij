@@ -4,12 +4,17 @@ import com.intellij.ui.ColoredTreeCellRenderer;
 import com.intellij.ui.SimpleTextAttributes;
 import io.apicopilot.document.Document;
 import io.apicopilot.model.Request;
+import io.apicopilot.util.TimeFormatUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
+
+import java.time.Instant;
+import java.util.Date;
 
 import static org.apache.commons.lang3.BooleanUtils.isNotTrue;
 
@@ -39,8 +44,9 @@ public class ApiViewCellRenderer extends ColoredTreeCellRenderer {
                 append(" (loading...)", SimpleTextAttributes.GRAY_ITALIC_ATTRIBUTES);
             }
             if (selected && !document.isLoading() && document.getLoadTime() != null) {
-                String time = DateFormatUtils.format(document.getLoadTime(), "MM/dd HH:mm");
-                append("  loaded at " + time, SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES);
+                Instant loadTime = Instant.ofEpochMilli(document.getLoadTime());
+                String time = TimeFormatUtils.formatRelativeTime(loadTime);
+                append(" · " + time, SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES);
             }
         } else if (value instanceof FolderNode) {
             // folder node
@@ -76,4 +82,6 @@ public class ApiViewCellRenderer extends ColoredTreeCellRenderer {
         }
 
     }
+
+
 }
