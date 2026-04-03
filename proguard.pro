@@ -27,4 +27,5 @@
 -keep class io.apicopilot.window.action.RefreshAction { *; }
 -keep class io.apicopilot.window.action.PreviewAction { *; }
 -keep class io.apicopilot.window.action.LocateApiAction { *; }
+-keep class io.apicopilot.startup.DocumentUpdateStartupActivity { *; }
 

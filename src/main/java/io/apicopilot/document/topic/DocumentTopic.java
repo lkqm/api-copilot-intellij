@@ -21,4 +21,7 @@ public interface DocumentTopic {
 
     default void onLoaded(Document document, LoadResult result) {
     }
+
+    default void onUpdateDetected(Document document) {
+    }
 }

@@ -14,6 +14,7 @@ import io.swagger.v3.parser.core.models.ParseOptions;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -80,6 +81,7 @@ public class DocumentManager {
             document.setLastSuccessTime(System.currentTimeMillis());
             document.setSyncStatus(SyncStatus.SUCCESS);
             document.setLastFailMessage(null);
+            document.setHasUpdate(false);
         } else {
             document.setSyncStatus(SyncStatus.FAILED);
             document.setLastFailMessage(resolveResult.getFailReason());
@@ -91,6 +93,32 @@ public class DocumentManager {
                 .failReason(resolveResult.getFailReason())
                 .changed(changed)
                 .build();
+    }
+
+    /**
+     * 检测文档是否有远程更新.
+     */
+    public CheckUpdateResult checkUpdate(Document document) {
+        if (StringUtils.isEmpty(document.getContent())) {
+            return new CheckUpdateResult(true, false, null);
+        }
+
+        ApiResolver resolver = DocumentSourceType.getApiResolver(document.getType(), project, document);
+        if (resolver == null) {
+            return new CheckUpdateResult(false, false, "Unknow document type");
+        }
+
+        try {
+            ResolveResult result = resolver.resolve(true);
+            if (!result.isSuccess()) {
+                return new CheckUpdateResult(false, false, result.getFailReason());
+            }
+            String remoteContent = result.getOpenApiContent();
+            boolean changed = StringUtils.isNotEmpty(remoteContent) && !remoteContent.equals(document.getContent());
+            return new CheckUpdateResult(true, changed, null);
+        } catch (Exception e) {
+            return new CheckUpdateResult(false, false, ExceptionUtils.getMessage(e));
+        }
     }
 
     /**

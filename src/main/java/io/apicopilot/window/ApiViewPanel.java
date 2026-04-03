@@ -247,4 +247,11 @@ public class ApiViewPanel extends SimpleToolWindowPanel {
     public void onDocumentModified(Document document) {
         treePane.refreshDocumentNode(document, false);
     }
+
+    /**
+     * 检测到文档远程更新后
+     */
+    public void onDocumentUpdateDetected(Document document) {
+        treePane.refreshDocumentNode(document, false);
+    }
 }

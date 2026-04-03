@@ -84,6 +84,11 @@ public class ApiViewImpl implements PersistentStateComponent<Element>, ApiView {
             public void onLoaded(Document document, LoadResult result) {
                 UiUtils.run(() -> panel.onDocumentLoaded(document, result));
             }
+
+            @Override
+            public void onUpdateDetected(Document document) {
+                UiUtils.run(() -> panel.onDocumentUpdateDetected(document));
+            }
         });
     }
 

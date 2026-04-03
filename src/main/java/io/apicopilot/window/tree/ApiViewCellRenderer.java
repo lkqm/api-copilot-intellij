@@ -1,6 +1,7 @@
 package io.apicopilot.window.tree;
 
 import com.intellij.ui.ColoredTreeCellRenderer;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.SimpleTextAttributes;
 import io.apicopilot.document.Document;
 import io.apicopilot.document.SyncStatus;
@@ -40,18 +41,23 @@ public class ApiViewCellRenderer extends ColoredTreeCellRenderer {
             setEnabled(document.isEnable());
             append(document.getName());
             SyncStatus syncStatus = document.getSyncStatus();
-            if (syncStatus == SyncStatus.SYNCING) {
+            boolean loading = syncStatus == SyncStatus.SYNCING;
+            if (loading) {
                 append(" (loading...)", SimpleTextAttributes.GRAY_ITALIC_ATTRIBUTES);
             }
 
-            if (syncStatus != SyncStatus.SYNCING && selected && document.getLastSuccessTime() != null) {
+            if (!loading && selected && document.getLastSuccessTime() != null) {
                 Instant loadTime = Instant.ofEpochMilli(document.getLastSuccessTime());
                 String time = TimeFormatUtils.formatRelativeTime(loadTime);
                 append(" · " + time, SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES);
             }
 
-            if (syncStatus == SyncStatus.FAILED) {
+            if (!loading && syncStatus == SyncStatus.FAILED) {
                 append("  ⚠");
+            }
+
+            if (!loading && document.isHasUpdate()) {
+                append("  ↻");
             }
 
         } else if (value instanceof FolderNode) {

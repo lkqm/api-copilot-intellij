@@ -73,6 +73,16 @@ public class Document {
      */
     private String lastFailMessage;
 
+    /**
+     * 是否有远程更新
+     */
+    private boolean hasUpdate;
+
+    /**
+     * 最后检测时间
+     */
+    private Long lastCheckTime;
+
     @Transient
     public OpenAPI getOpenApi() {
         return openApi;
