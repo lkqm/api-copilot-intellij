@@ -9,6 +9,7 @@ import com.intellij.openapi.vcs.VcsShowConfirmationOption;
 import com.intellij.util.ui.ConfirmationDialog;
 import io.apicopilot.codegen.ui.GenerateCodeDialog;
 import io.apicopilot.document.Document;
+import io.apicopilot.document.DocumentClipboard;
 import io.apicopilot.document.DocumentManager;
 import io.apicopilot.document.DocumentRepository;
 import io.apicopilot.document.LoadResult;
@@ -90,6 +91,14 @@ public class DocumentNode extends ApiViewNode<DocumentNode.Context> {
         });
         menu.add(expandAllItem);
 
+        // Duplicate document
+        JMenuItem duplicateItem = new JBMenuItem("Duplicate");
+        duplicateItem.addActionListener(actionEvent -> {
+            DocumentEditDialog.showDuplicate(project, document);
+        });
+        menu.add(duplicateItem);
+
+
         return menu;
     }
 
@@ -97,6 +106,8 @@ public class DocumentNode extends ApiViewNode<DocumentNode.Context> {
     public void keyPressed(KeyEventContext ctx) {
         KeyEvent event = ctx.getEvent();
         Project project = ctx.getProject();
+
+        boolean isCtrl = event.isControlDown() || event.isMetaDown();
 
         // 移除
         if (event.getKeyCode() == KeyEvent.VK_DELETE) {
@@ -108,6 +119,16 @@ public class DocumentNode extends ApiViewNode<DocumentNode.Context> {
                 DocumentRepository.getInstance(project).delete(data.getDocument().getId());
                 data.getTreePane().removeDocumentNode(data.getDocument().getId());
             }
+        }
+
+        // Ctrl+C: copy document to clipboard
+        if (isCtrl && event.getKeyCode() == KeyEvent.VK_C) {
+            DocumentClipboard.copy(data.getDocument());
+        }
+
+        // Ctrl+V: paste document from clipboard
+        if (isCtrl && event.getKeyCode() == KeyEvent.VK_V && DocumentClipboard.hasCopy()) {
+            DocumentEditDialog.showDuplicate(project, DocumentClipboard.get());
         }
     }
 

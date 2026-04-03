@@ -78,9 +78,19 @@ public class Document {
         return openApi;
     }
 
-    @Transient
-    public boolean isLoaded() {
-        return content != null;
+    /**
+     * Create a duplicate with a new id and modified name.
+     */
+    public Document duplicate() {
+        Document copy = new Document();
+        copy.setName(this.name);
+        copy.setEnable(true);
+        copy.setType(this.type);
+        copy.setOpenApiConfig(this.openApiConfig);
+        copy.setApifoxConfig(this.apifoxConfig);
+        copy.setSwaggerHubConfig(this.swaggerHubConfig);
+        // id is null so save() will generate a new UUID
+        return copy;
     }
 
     /**
