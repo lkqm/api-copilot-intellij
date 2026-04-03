@@ -56,7 +56,7 @@ public class DocumentEditDialog extends DialogWrapper {
     protected void doOKAction() {
         super.doOKAction();
         Document document = form.get();
-        document.setLoading(true);
+        document.setSyncStatus(SyncStatus.SYNCING);
         DocumentRepository.getInstance(project).save(document);
 
         // publish document event

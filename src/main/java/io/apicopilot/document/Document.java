@@ -59,14 +59,19 @@ public class Document {
     private OpenAPI openApi;
 
     /**
-     * 加载时间
+     * 同步状态
      */
-    private Long loadTime;
+    private SyncStatus syncStatus;
 
     /**
-     * 是否在加载中
+     * 最后同步成功时间
      */
-    private boolean loading;
+    private Long lastSuccessTime;
+
+    /**
+     * 最后同步失败消息
+     */
+    private String lastFailMessage;
 
     @Transient
     public OpenAPI getOpenApi() {

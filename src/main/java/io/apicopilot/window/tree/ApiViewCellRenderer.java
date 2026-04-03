@@ -3,18 +3,17 @@ package io.apicopilot.window.tree;
 import com.intellij.ui.ColoredTreeCellRenderer;
 import com.intellij.ui.SimpleTextAttributes;
 import io.apicopilot.document.Document;
+import io.apicopilot.document.SyncStatus;
 import io.apicopilot.model.Request;
 import io.apicopilot.util.TimeFormatUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateFormatUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 
+import java.awt.*;
 import java.time.Instant;
-import java.util.Date;
 
 import static org.apache.commons.lang3.BooleanUtils.isNotTrue;
 
@@ -40,14 +39,21 @@ public class ApiViewCellRenderer extends ColoredTreeCellRenderer {
             Document document = data.getDocument();
             setEnabled(document.isEnable());
             append(document.getName());
-            if (document.isLoading()) {
+            SyncStatus syncStatus = document.getSyncStatus();
+            if (syncStatus == SyncStatus.SYNCING) {
                 append(" (loading...)", SimpleTextAttributes.GRAY_ITALIC_ATTRIBUTES);
             }
-            if (selected && !document.isLoading() && document.getLoadTime() != null) {
-                Instant loadTime = Instant.ofEpochMilli(document.getLoadTime());
+
+            if (syncStatus != SyncStatus.SYNCING && selected && document.getLastSuccessTime() != null) {
+                Instant loadTime = Instant.ofEpochMilli(document.getLastSuccessTime());
                 String time = TimeFormatUtils.formatRelativeTime(loadTime);
                 append(" · " + time, SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES);
             }
+
+            if (syncStatus == SyncStatus.FAILED) {
+                append("  ⚠");
+            }
+
         } else if (value instanceof FolderNode) {
             // folder node
             FolderNode node = (FolderNode) value;

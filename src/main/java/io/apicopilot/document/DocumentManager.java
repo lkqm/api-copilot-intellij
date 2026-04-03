@@ -7,7 +7,6 @@ import io.apicopilot.document.resolver.ResolveResult;
 import io.apicopilot.document.topic.DocumentTopic;
 import io.apicopilot.model.Api;
 import io.apicopilot.model.Request;
-import io.apicopilot.util.NotificationUtils;
 import io.apicopilot.util.PathUtils;
 import io.swagger.parser.OpenAPIParser;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -78,9 +77,13 @@ public class DocumentManager {
             changed = !Objects.equals(document.getContent(), resolveResult.getOpenApiContent());
             document.setContent(resolveResult.getOpenApiContent());
             document.setOpenApi(resolveResult.getOpenApi());
-            document.setLoadTime(System.currentTimeMillis());
+            document.setLastSuccessTime(System.currentTimeMillis());
+            document.setSyncStatus(SyncStatus.SUCCESS);
+            document.setLastFailMessage(null);
+        } else {
+            document.setSyncStatus(SyncStatus.FAILED);
+            document.setLastFailMessage(resolveResult.getFailReason());
         }
-        document.setLoading(false);
         DocumentRepository.getInstance(this.project).save(document);
 
         return LoadResult.builder()

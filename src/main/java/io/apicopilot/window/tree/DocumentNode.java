@@ -12,6 +12,7 @@ import io.apicopilot.document.Document;
 import io.apicopilot.document.DocumentManager;
 import io.apicopilot.document.DocumentRepository;
 import io.apicopilot.document.LoadResult;
+import io.apicopilot.document.SyncStatus;
 import io.apicopilot.model.Request;
 import io.apicopilot.util.NotificationUtils;
 import io.apicopilot.util.OpenApiUtils;
@@ -40,10 +41,10 @@ public class DocumentNode extends ApiViewNode<DocumentNode.Context> {
         JPopupMenu menu = new JBPopupMenu();
 
         // Reload document
-        if (!document.isLoading()) {
+        if (document.getSyncStatus() != SyncStatus.SYNCING) {
             JMenuItem reloadItem = new JBMenuItem("Reload");
             reloadItem.addActionListener(actionEvent -> {
-                document.setLoading(true);
+                document.setSyncStatus(SyncStatus.SYNCING);
                 data.getTreePane().refreshDocumentNode(document, false);
 
                 ApplicationManager.getApplication().executeOnPooledThread(() -> {

@@ -10,6 +10,7 @@ import com.intellij.util.concurrency.AppExecutorUtil;
 import io.apicopilot.document.Document;
 import io.apicopilot.document.DocumentManager;
 import io.apicopilot.document.LoadResult;
+import io.apicopilot.document.SyncStatus;
 import io.apicopilot.model.Request;
 import io.apicopilot.util.NotificationUtils;
 import io.apicopilot.window.support.PreviewState;
@@ -152,7 +153,7 @@ public class ApiViewPanel extends SimpleToolWindowPanel {
 
         DumbService.getInstance(project).runWhenSmart(() -> {
             documents.forEach(document -> {
-                document.setLoading(true);
+                document.setSyncStatus(SyncStatus.SYNCING);
                 treePane.refreshDocumentNode(document, false);
             });
             List<CompletableFuture<LoadResult>> futures = documents.stream()
