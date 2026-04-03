@@ -82,6 +82,14 @@ public class DocumentNode extends ApiViewNode<DocumentNode.Context> {
             data.getTreePane().removeDocumentNode(document.getId());
         });
         menu.add(deleteItem);
+
+        // Expand all children
+        JMenuItem expandAllItem = new JBMenuItem("Expand All");
+        expandAllItem.addActionListener(actionEvent -> {
+            data.getTreePane().expandDocumentNode(document.getId());
+        });
+        menu.add(expandAllItem);
+
         return menu;
     }
 

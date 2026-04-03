@@ -167,6 +167,26 @@ public class ApiViewTreePane extends JBScrollPane {
         }
     }
 
+    /**
+     * 展开文档节点的所有子节点
+     */
+    public void expandDocumentNode(String documentId) {
+        DocumentNode node = documentNodes.get(documentId);
+        if (node == null) {
+            return;
+        }
+        TreeNode[] pathToRoot = treeModel.getPathToRoot(node);
+        expandAll(tree, new TreePath(pathToRoot));
+    }
+
+    private void expandAll(Tree tree, TreePath path) {
+        tree.expandPath(path);
+        TreeNode node = (TreeNode) path.getLastPathComponent();
+        for (int i = 0; i < node.getChildCount(); i++) {
+            expandAll(tree, path.pathByAddingChild(node.getChildAt(i)));
+        }
+    }
+
     private DocumentNode buildDocumentNode(Document document, @Nullable DocumentNode documentNode) {
         String id = document.getId();
         String name = document.getName();
