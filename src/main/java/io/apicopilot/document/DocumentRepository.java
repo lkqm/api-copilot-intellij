@@ -84,4 +84,57 @@ public class DocumentRepository {
         settings.loadState(settings);
     }
 
+    /**
+     * Reorder documents: move sourceId before targetId.
+     * targetId == null → move to end
+     */
+    public void reorder(String sourceId, String targetId) {
+        DocumentSettings settings = DocumentSettings.getInstance(project);
+        List<Document> documents = settings.getDocuments();
+
+        if (documents == null || documents.size() <= 1) {
+            return;
+        }
+
+        int fromIndex = -1;
+        int targetIndex = -1;
+
+        for (int i = 0; i < documents.size(); i++) {
+            Document doc = documents.get(i);
+            if (doc.getId().equals(sourceId)) {
+                fromIndex = i;
+            }
+            if (doc.getId().equals(targetId)) {
+                targetIndex = i;
+            }
+        }
+
+        if (fromIndex < 0) {
+            return;
+        }
+
+        if (targetId == null) {
+            targetIndex = documents.size();
+        }
+
+        if (targetId != null && targetIndex < 0) {
+            return;
+        }
+
+        if (fromIndex == targetIndex || fromIndex + 1 == targetIndex) {
+            return;
+        }
+
+        Document doc = documents.remove(fromIndex);
+
+        int insertIndex = targetIndex > fromIndex ? targetIndex - 1 : targetIndex;
+
+        // 边界保护（保险）
+        if (insertIndex > documents.size()) {
+            insertIndex = documents.size();
+        }
+
+        documents.add(insertIndex, doc);
+    }
+
 }
