@@ -49,6 +49,7 @@ intellij {
     version = '2023.3.2'
     sandboxDir = "${project.rootDir}/.sandbox"
     updateSinceUntilBuild = false
+    publishPlugin.token = project.findProperty('intellij.publish.token') ?: System.getenv('INTELLIJ_PUBLISH_TOKEN')
 }
 patchPluginXml {
     changeNotes = """Initial commit"""
@@ -58,6 +59,7 @@ test {
     useJUnitPlatform()
 }
 
+// proguard to obfuscates code
 def proguardOutputJar = layout.buildDirectory.file("libs/$name-$version-proguard.jar")
 tasks.register('proguard', ProGuardTask) {
     dependsOn tasks.jar
