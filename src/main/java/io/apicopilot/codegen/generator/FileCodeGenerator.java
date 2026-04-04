@@ -19,6 +19,8 @@ import io.apicopilot.util.OpenApiTagResolver;
 import io.apicopilot.util.ResourceUtils;
 import lombok.SneakyThrows;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.ListUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -40,11 +42,45 @@ public class FileCodeGenerator {
 
     @SneakyThrows
     public List<CodeFile> generate(String language, String type, Map<String, Object> options) {
+        // response handle mode
+        String responseHandleDataField = options.getOrDefault("responseHandleDataField", "").toString();
+        if(StringUtils.isEmpty(responseHandleDataField)) {
+            options.put("responseHandleDataField", "raw");
+        }
+
+        String responseHandleMode = options.getOrDefault("responseHandleMode", "raw").toString();
+        if ("unwrap".equals(responseHandleMode)) {
+            options.put("responseHandleModeUnwrap", true);
+        } else if ("wrap".equals(responseHandleMode)) {
+            options.put("responseHandleModeWrap", true);
+        } else {
+            options.put("responseHandleModeRaw", true);
+        }
+
         CodeTemplate template = GenerateConfigs.getInstance().getConfig().getCodeTemplate(language, type);
         TypeMappings typeMappings = TypeMappings.getInstance();
         List<ApiModel> apis = requests.stream().map(request -> {
             ApiModelGenerator modelGenerator = new ApiModelGenerator(request, language, new TypeResolverImpl(language, typeMappings.get(language)));
-            return modelGenerator.get();
+            ApiModel apiModel = modelGenerator.get();
+            
+            // response handle
+            PropertyModel responseBody = apiModel.getResponseBody();
+            if(!"raw".equals(responseHandleMode) && responseBody != null && responseBody.getProperties() != null) {
+                PropertyModel dataModel = responseBody.getProperties().stream().filter(o -> responseHandleDataField.equals(o.getName())).findFirst().orElse(null);
+                responseBody.setDataModel(dataModel);
+
+                if(apiModel.getModels() != null) {
+                    apiModel.getModels().forEach(model -> {
+                        if(BooleanUtils.isTrue(model.getIsResponseModel())) {
+                            model.setIsSkip(true);
+                        }
+                    });
+                    List<PropertyModel> models = apiModel.getModels().stream().filter(m -> BooleanUtils.isNotTrue(m.getIsSkip())).collect(Collectors.toList());
+                    apiModel.setModels(models);
+                }
+            }
+
+            return apiModel;
         }).collect(Collectors.toList());
         Map<String, List<ApiModel>> tagToApis = apis.stream()
                 .collect(Collectors.groupingBy(api -> CollectionUtils.isEmpty(api.getTags()) ? "" : api.getTags().get(0)));
@@ -201,7 +237,7 @@ public class FileCodeGenerator {
     private String getTag(Map<String, String> cache, String tag) {
         return cache.computeIfAbsent(tag, k -> {
             String tagToUse = OpenApiTagResolver.inferResourceName(document.getOpenApi(), tag);
-            if(tagToUse != null) {
+            if (tagToUse != null) {
                 tagToUse = tagToUse.toLowerCase();
             }
             return tagToUse;

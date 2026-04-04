@@ -52,6 +52,15 @@ public class PropertyModel {
     /** 数组新模型 */
     private Boolean isArrayModel;
 
+    /** 响应类数据模型 */
+    private PropertyModel dataModel;
+
+    /** 是否时响应模型 */
+    private Boolean isResponseModel;
+
+    /** 模型是否需要跳过 */
+    private Boolean isSkip;
+
     public String getJsonExample() {
         if (schema == null) {
             return null;

@@ -22,7 +22,22 @@
         "required": false,
         "defaultValue": false,
         "hidden": true
-      }
+      },
+      {
+        "name": "responseHandleMode",
+        "type": "list",
+        "label": "Response Handle Mode",
+        "required": false,
+        "defaultValue": "raw",
+        "values": [
+          { "value": "raw" },
+          { "value": "wrap" },
+          { "value": "unwrap" }
+        ]
+      },
+      { "name": "responseHandleDataField", "type": "text", "required": false, "label": "Response Data Field" },
+      { "name": "responseHandleWrapperType", "type": "text", "required": false, "label": "Response Wrapper Type" },
+      { "name": "responseHandleTypeFile", "type": "text", "required": false, "label": "Response Wrapper Type File" }
     ],
     "files": [
       { "type": "client", "template": "codegen/code/javascript/default/client.hbs", "path": "{{{apiFile}}}" },
@@ -53,7 +68,22 @@
         "required": false,
         "defaultValue": false,
         "hidden": true
-      }
+      },
+      {
+        "name": "responseHandleMode",
+        "type": "list",
+        "label": "Response Handle Mode",
+        "required": false,
+        "defaultValue": "raw",
+        "values": [
+          { "value": "raw" },
+          { "value": "wrap" },
+          { "value": "unwrap" }
+        ]
+      },
+      { "name": "responseHandleDataField", "type": "text", "required": false, "label": "Response Data Field" },
+      { "name": "responseHandleWrapperType", "type": "text", "required": false, "label": "Response Wrapper Type" },
+      { "name": "responseHandleTypeFile", "type": "text", "required": false, "label": "Response Wrapper Type File" }
     ],
     "files": [
       { "type": "client", "template": "codegen/code/typescript/default/client.hbs", "path": "{{{apiFile}}}" },
@@ -88,7 +118,21 @@
           { "value":  "jackson" },
           { "value":  "gson" }
         ]
-      }
+      },
+      {
+        "name": "responseHandleMode",
+        "type": "list",
+        "label": "Response Handle Mode",
+        "required": false,
+        "defaultValue": "raw",
+        "values": [
+          { "value":  "raw" },
+          { "value":  "wrap" },
+          { "value":  "unwrap" }
+        ]
+      },
+      { "name": "responseHandleDataField", "type": "text", "required": false, "label":  "Response Data Field"},
+      { "name": "responseHandleWrapperClass", "type": "text", "required": false, "label":  "Response Wrapper Class"}
     ],
     "files": [
       { "type": "client", "template": "codegen/code/java/openfeign/client.hbs", "path":  "src/main/java/{{#replace clientPackage '.' '/'}}{{/replace}}/{{{clientClassName}}}.java"},
@@ -116,7 +160,21 @@
           { "value":  "klaxon" },
           { "value":  "kotlinx" }
         ]
-      }
+      },
+      {
+        "name": "responseHandleMode",
+        "type": "list",
+        "label": "Response Handle Mode",
+        "required": false,
+        "defaultValue": "raw",
+        "values": [
+          { "value":  "raw" },
+          { "value":  "wrap" },
+          { "value":  "unwrap" }
+        ]
+      },
+      { "name": "responseHandleDataField", "type": "text", "required": false, "label":  "Response Data Field"},
+      { "name": "responseHandleWrapperClass", "type": "text", "required": false, "label":  "Response Wrapper Class"}
     ],
     "files": [
       { "type": "client", "template": "codegen/code/kotlin/openfeign/client.hbs", "path":  "src/main/kotlin/{{#replace clientPackage '.' '/'}}{{/replace}}/{{{clientClassName}}}.kt"},

@@ -113,6 +113,17 @@ public enum CustomHelpers implements Helper<Object> {
             }
             return new Handlebars.SafeString(path);
         }
+    },
+    toSimpleClassName {
+        @Override
+        public CharSequence apply(Object value, Options options) throws IOException {
+            if (value == null) {
+                return "";
+            }
+            String name = value.toString();
+            int lastDot = name.lastIndexOf('.');
+            return lastDot >= 0 ? name.substring(lastDot + 1) : name;
+        }
     }
     ;
 }

@@ -6,7 +6,8 @@ import feign.Response
 import org.springframework.cloud.openfeign.FeignClient
 import org.springframework.cloud.openfeign.SpringQueryMap
 import org.springframework.web.bind.annotation.*{{#if modelPackage}}
-import {{{modelPackage}}}.*;
+import {{{modelPackage}}}.*;{{/if}}{{#if responseHandleModeWrap}}{{#if responseHandleWrapperClass}}
+import {{{responseHandleWrapperClass}}};{{/if}}
 {{/if}}
 
 @FeignClient(name = "{{{serviceName}}}"{{#if serviceUrl}}, url = "{{{serviceUrl}}}"{{/if}})
@@ -16,6 +17,6 @@ interface {{{clientClassName}}}{ {{#each apis}}{{#with this}}
      * {{{summary}}}
      */
     @{{#pascal method}}{{/pascal}}Mapping("{{path}}")
-    fun {{#camel operationId}}{{/camel}}({{#each pathParameters}}@PathVariable("{{this.name}}") {{{this.targetType}}} {{#camel this.name}}{{/camel}}{{#unless @last}}, {{/unless}}{{/each}}{{#if queryModel}}{{#if pathParameters}}, {{/if}}@SpringQueryMap {{{queryModel.targetType}}} params{{/if}}{{#if requestBody}}{{#or pathParameters queryModel}}, {{/or}}@RequestBody {{{requestBody.targetType}}} body{{/if}}): {{#eq responseBodyType 'binary'}}Response{{else}}{{#if responseBody.targetType}}{{{responseBody.targetType}}}{{else}}void{{/if}}{{/eq}} {{/with}}{{/each}}
+    fun {{#camel operationId}}{{/camel}}({{#each pathParameters}}@PathVariable("{{this.name}}") {{{this.targetType}}} {{#camel this.name}}{{/camel}}{{#unless @last}}, {{/unless}}{{/each}}{{#if queryModel}}{{#if pathParameters}}, {{/if}}@SpringQueryMap {{{queryModel.targetType}}} params{{/if}}{{#if requestBody}}{{#or pathParameters queryModel}}, {{/or}}@RequestBody {{{requestBody.targetType}}} body{{/if}}): {{#eq responseBodyType 'binary'}}Response{{else}}{{#if responseBody.targetType}}{{#if @root.responseHandleModeRaw}}{{{responseBody.targetType}}}{{/if}}{{#if @root.responseHandleModeUnwrap}}{{{responseBody.dataModel.targetType}}}{{/if}}{{#if @root.responseHandleModeWrap}}{{#toSimpleClassName @root.responseHandleWrapperClass}}{{/toSimpleClassName}}<{{{responseBody.dataModel.targetType}}}>{{/if}}{{else}}void{{/if}}{{/eq}}{{/with}}{{/each}}
 
 }

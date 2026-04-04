@@ -135,6 +135,7 @@ public class ApiModelGenerator {
                     if (responseBodyType != null) {
                         api.setResponseBodyType(responseBodyType.name());
                     }
+                    responseBody.setIsResponseModel(true);
                     api.setResponseBody(responseBody);
                 });
     }
