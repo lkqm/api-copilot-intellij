@@ -7,9 +7,11 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.EditorSettings;
 import com.intellij.openapi.editor.ex.EditorEx;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.testFramework.LightVirtualFile;
 
 import javax.swing.*;
 import java.awt.*;
@@ -34,11 +36,21 @@ public class CodeEditorPanel extends JPanel implements Disposable {
 
     private void createEditor(String code, String extension) {
         FileType fileType = FileTypeManager.getInstance().getFileTypeByExtension(extension);
-        Document document = EditorFactory.getInstance().createDocument(code);
+
+        // Use LightVirtualFile so the document is backed by a VirtualFile.
+        // This allows IntelliJ's PSI infrastructure to associate a PsiFile with the
+        // document, which is required for language services such as code folding,
+        // syntax highlighting, and the DaemonCodeAnalyzer to function properly.
+        // Always writable so programmatic setText() works.
+        // The editor's own readonly flag (passed to createEditor) handles user-edit prevention.
+        LightVirtualFile vf = new LightVirtualFile("_body_." + extension, fileType, code);
+        Document document = FileDocumentManager.getInstance().getDocument(vf);
+        if (document == null) {
+            // Fallback: orphan document (no folding, but editor still works)
+            document = EditorFactory.getInstance().createDocument(code);
+        }
+
         editor = EditorFactory.getInstance().createEditor(document, project, fileType, this.readonly);
-        editor.getSettings().setLineNumbersShown(true);
-        editor.getSettings().setLineMarkerAreaShown(true);
-        editor.getSettings().setFoldingOutlineShown(true);
 
         EditorSettings settings = editor.getSettings();
         settings.setLineNumbersShown(true);
@@ -49,8 +61,7 @@ public class CodeEditorPanel extends JPanel implements Disposable {
         settings.setWheelFontChangeEnabled(false);
         settings.setCaretRowShown(false);
         if (editor instanceof EditorEx) {
-            EditorEx editorEx = (EditorEx) editor;
-            JScrollBar scrollBar = editorEx.getScrollPane().getVerticalScrollBar();
+            JScrollBar scrollBar = ((EditorEx) editor).getScrollPane().getVerticalScrollBar();
             scrollBar.setOpaque(false);
         }
 
@@ -67,7 +78,7 @@ public class CodeEditorPanel extends JPanel implements Disposable {
             return;
         }
 
-        // rebuild editor
+        // rebuild editor for new file type
         if (editor != null) {
             remove(editor.getComponent());
             EditorFactory.getInstance().releaseEditor(editor);

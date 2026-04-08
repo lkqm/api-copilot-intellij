@@ -23,9 +23,8 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.tree.*;
 import java.awt.event.*;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 /**
@@ -298,6 +297,53 @@ public class ApiViewTreePane extends JBScrollPane {
                             .build();
                     nodes[0].keyPressed(ctx);
                     return;
+                }
+            }
+        });
+    }
+
+    /**
+     * 返回当前所有展开节点的 key 集合：
+     * - DocumentNode → document ID
+     * - FolderNode   → "docId/folderName"
+     */
+    public Set<String> getExpandedKeys() {
+        Set<String> keys = new HashSet<>();
+        Enumeration<TreePath> expanded = tree.getExpandedDescendants(new TreePath(treeModel.getRoot()));
+        if (expanded == null) return keys;
+        while (expanded.hasMoreElements()) {
+            TreePath path = expanded.nextElement();
+            Object node = path.getLastPathComponent();
+            if (node instanceof DocumentNode) {
+                keys.add(((DocumentNode) node).getData().getDocument().getId());
+            } else if (node instanceof FolderNode && path.getPathCount() >= 3) {
+                Object parent = path.getParentPath().getLastPathComponent();
+                if (parent instanceof DocumentNode) {
+                    String docId  = ((DocumentNode) parent).getData().getDocument().getId();
+                    String folder = ((FolderNode) node).getData().getFolder();
+                    keys.add(docId + "/" + folder);
+                }
+            }
+        }
+        return keys;
+    }
+
+    /**
+     * 根据 key 集合恢复展开状态。
+     */
+    public void applyExpandedKeys(Set<String> keys) {
+        if (keys == null || keys.isEmpty()) return;
+        documentNodes.forEach((docId, docNode) -> {
+            if (keys.contains(docId)) {
+                tree.expandPath(new TreePath(treeModel.getPathToRoot(docNode)));
+                for (int i = 0; i < docNode.getChildCount(); i++) {
+                    TreeNode child = docNode.getChildAt(i);
+                    if (child instanceof FolderNode) {
+                        String folderKey = docId + "/" + ((FolderNode) child).getData().getFolder();
+                        if (keys.contains(folderKey)) {
+                            tree.expandPath(new TreePath(treeModel.getPathToRoot(child)));
+                        }
+                    }
                 }
             }
         });

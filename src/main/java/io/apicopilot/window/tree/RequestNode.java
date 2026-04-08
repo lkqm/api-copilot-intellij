@@ -35,11 +35,6 @@ public class RequestNode extends ApiViewNode<RequestNode.Context> {
     @Override
     public JPopupMenu getPopupMenu(MouseEventContext ctx) {
         JPopupMenu popupMenu = new JBPopupMenu();
-        JMenuItem copyPathItem = new JBMenuItem("Copy Path");
-        copyPathItem.addActionListener(actionEvent -> {
-            ClipboardUtils.setClipboard(data.getRequest().getPath());
-        });
-        popupMenu.add(copyPathItem);
 
         // Copy Request As Json
         Operation operation = data.getRequest().getOperation();

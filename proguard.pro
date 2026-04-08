@@ -1,5 +1,9 @@
 -keepattributes *Annotation*
 
+# JDK classes not on ProGuard's classpath
+-dontwarn java.net.http.**
+-dontwarn javax.xml.transform.**
+
 # state
 -keep @com.intellij.openapi.components.Service class * { *; }
 -keep @com.intellij.openapi.components.State class * { *; }

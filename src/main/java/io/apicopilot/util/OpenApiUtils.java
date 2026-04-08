@@ -77,6 +77,22 @@ public class OpenApiUtils {
     /**
      * 获取参数描述
      */
+    /**
+     * Returns the human-readable type string for a schema, e.g. {@code integer <int64>}, {@code string[]}.
+     * Consistent with the type chip display in the document preview pane.
+     */
+    public static String schemaTypeDisplay(Schema<?> schema) {
+        if (schema == null) return "string";
+        String type = schema.getType();
+        if ("array".equals(type) && schema.getItems() != null) {
+            String itemType = schema.getItems().getType();
+            return (itemType != null ? itemType : "object") + "[]";
+        }
+        if (type == null) return "object";
+        String fmt = schema.getFormat();
+        return (fmt != null && !fmt.isEmpty()) ? type + " <" + fmt + ">" : type;
+    }
+
     public String getParameterDescriptionMore(Parameter parameter) {
         String description = parameter.getDescription() != null ? parameter.getDescription() : "";
         if (parameter.getSchema() == null) {
@@ -99,13 +115,23 @@ public class OpenApiUtils {
         if (schema.getMinLength() != null || schema.getMaxLength() != null) {
             int min = schema.getMinLength() != null ? schema.getMinLength() : 0;
             int max = schema.getMaxLength() != null ? schema.getMaxLength() : Integer.MAX_VALUE;
-            attaches.add(format("长度: %d~%d", min, max));
+            attaches.add(format("length: %d~%d", min, max));
         }
         // 数值范围
         if (schema.getMinimum() != null || schema.getMaximum() != null) {
             String min = schema.getMinimum() != null ? schema.getMinimum().toPlainString() : "";
             String max = schema.getMaximum() != null ? schema.getMaximum().toPlainString() : "";
-            attaches.add(format("大小: %s~%s", min, max));
+            attaches.add(format("range: %s~%s", min, max));
+        }
+        // 数组长度
+        if (schema.getMinItems() != null || schema.getMaxItems() != null) {
+            String min = schema.getMinItems() != null ? String.valueOf(schema.getMinItems()) : "0";
+            String max = schema.getMaxItems() != null ? String.valueOf(schema.getMaxItems()) : "∞";
+            attaches.add(format("items: %s~%s", min, max));
+        }
+        // 默认值
+        if (schema.getDefault() != null) {
+            attaches.add("default: " + schema.getDefault());
         }
 
         if (!attaches.isEmpty()) {
@@ -128,6 +154,9 @@ public class OpenApiUtils {
             return null;
         }
         String type = schema.getType();
+        if(StringUtils.isEmpty(type)) {
+            return null;
+        }
         String format = schema.getFormat();
         switch (type) {
             case "boolean":

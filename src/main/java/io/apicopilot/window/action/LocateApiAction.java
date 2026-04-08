@@ -38,7 +38,9 @@ public class LocateApiAction extends AnAction {
             return;
         }
         ApiViewPanel panel = ApiView.getInstance(project).getPanel();
-        boolean canLocate = panel.getPreviewState() != PreviewState.HIDDEN && panel.getPreviewPane().getDocument() != null && panel.getPreviewPane().getRequest() != null;
+        boolean canLocate = panel.getPreviewState() != PreviewState.HIDDEN
+                && panel.getTabPane().getCurrentDocument() != null
+                && panel.getTabPane().getCurrentRequest() != null;
         e.getPresentation().setEnabled(canLocate);
     }
 

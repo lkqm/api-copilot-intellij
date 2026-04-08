@@ -42,6 +42,7 @@
 
         <projectService serviceInterface="io.apicopilot.window.ApiView"
                         serviceImplementation="io.apicopilot.window.ApiViewImpl"/>
+        <projectService serviceImplementation="io.apicopilot.debug.DebugSettings"/>
         <!-- 视图窗口 -->
         <toolWindow id="ApiView" anchor="right" icon="AllIcons.Toolwindows.Documentation" order="last"
                     factoryClass="io.apicopilot.window.ApiViewToolWindowFactory"/>

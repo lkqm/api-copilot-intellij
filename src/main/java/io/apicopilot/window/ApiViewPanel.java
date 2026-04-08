@@ -1,10 +1,13 @@
 package io.apicopilot.window;
 
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.ui.JBSplitter;
+import com.intellij.ui.JBColor;
+import com.intellij.ui.SideBorder;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import io.apicopilot.document.Document;
@@ -22,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
+import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -37,88 +41,98 @@ import java.util.stream.Collectors;
  * @see #refresh()
  * @see #select(String, String, String)
  */
-public class ApiViewPanel extends SimpleToolWindowPanel {
+public class ApiViewPanel extends SimpleToolWindowPanel implements Disposable {
+
+    private static final int LEFT_PANEL_MIN_WIDTH = 260;
 
     private final Project project;
     @Getter
     private final ApiViewTreePane treePane;
     @Getter
-    private final ApiViewPreviewPane previewPane;
+    private final ApiViewTabbedPane tabPane;
     private final JBSplitter splitter;
     @Getter
     private PreviewState previewState;
 
     public ApiViewPanel(@NotNull Project project) {
         super(true, true);
-        this.setToolbar(createToolbar());
         this.project = project;
-        this.previewPane = new ApiViewPreviewPane();
+        this.tabPane = new ApiViewTabbedPane(project);
         this.previewState = PreviewState.HIDDEN;
         this.treePane = new ApiViewTreePane(project);
+        JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.setMinimumSize(new Dimension(LEFT_PANEL_MIN_WIDTH, 0));
+        leftPanel.setBorder(new SideBorder(JBColor.border(), SideBorder.RIGHT));
+        leftPanel.add(createToolbar(), BorderLayout.NORTH);
+        leftPanel.add(treePane, BorderLayout.CENTER);
         this.splitter = new JBSplitter(false, "ApiViewPanelSplitter", 1);
-        this.splitter.setFirstComponent(treePane);
-        this.add(this.splitter);
+        this.splitter.setDividerWidth(3);
+        this.splitter.setFirstComponent(leftPanel);
+        this.setContent(this.splitter);
         initEvent();
         DumbService.getInstance(project).smartInvokeLater(this::firstLoad);
     }
 
     private void initEvent() {
         Tree tree = this.treePane.getTree();
+
+        // Single click: open/replace preview tab (or focus if already a permanent tab)
         tree.addTreeSelectionListener(e -> {
             DefaultMutableTreeNode treeNode = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
             if (treeNode instanceof RequestNode) {
                 RequestNode.Context data = ((RequestNode) treeNode).getData();
-                showRequestDetail(data.getDocument(), data.getRequest());
+                openPreview(data.getDocument(), data.getRequest());
             }
         });
 
+        // Enter key: open or focus a tab for the selected API
         tree.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    if (ApiViewPanel.this.previewState != PreviewState.HIDDEN) {
-                        return;
-                    }
                     DefaultMutableTreeNode treeNode = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
                     if (treeNode instanceof RequestNode) {
-                        setPreviewState(PreviewState.VERTICAL);
+                        RequestNode.Context data = ((RequestNode) treeNode).getData();
+                        openTab(data.getDocument(), data.getRequest());
                     }
                 }
             }
         });
 
+        // Double click: open or focus a tab for the selected API
         tree.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
-                    if (ApiViewPanel.this.previewState != PreviewState.HIDDEN) {
-                        return;
-                    }
                     DefaultMutableTreeNode treeNode = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
                     if (treeNode instanceof RequestNode) {
-                        setPreviewState(PreviewState.VERTICAL);
+                        RequestNode.Context data = ((RequestNode) treeNode).getData();
+                        openTab(data.getDocument(), data.getRequest());
                     }
                 }
             }
         });
-
-
     }
 
-    private void showRequestDetail(Document document, Request request) {
-        JBSplitter splitter = ApiViewPanel.this.splitter;
-        PreviewState state = this.previewState;
-        if (state == PreviewState.HIDDEN) {
-            splitter.setSecondComponent(null);
-        } else if (state == PreviewState.VERTICAL) {
-            splitter.setSecondComponent(previewPane);
-            if (splitter.getProportion() == 1) {
+    /** Single-click: open preview tab (shows right pane if hidden). */
+    private void openPreview(Document document, Request request) {
+        ensureRightPaneVisible();
+        tabPane.previewOrFocus(document, request);
+    }
+
+    /** Double-click: open permanent tab (promotes preview if applicable). */
+    private void openTab(Document document, Request request) {
+        ensureRightPaneVisible();
+        tabPane.openOrFocus(document, request);
+    }
+
+    private void ensureRightPaneVisible() {
+        if (previewState == PreviewState.HIDDEN) {
+            previewState = PreviewState.VERTICAL;
+            splitter.setSecondComponent(tabPane);
+            if (splitter.getProportion() >= 0.99f) {
                 splitter.setProportion(0.4f);
             }
-        }
-
-        if (state != PreviewState.HIDDEN && request != null) {
-            previewPane.setRequest(document, request);
         }
     }
 
@@ -141,9 +155,6 @@ public class ApiViewPanel extends SimpleToolWindowPanel {
         }
     }
 
-    /**
-     * 刷新面板.
-     */
     public void refresh() {
         DocumentManager manager = DocumentManager.getInstance(project);
         List<Document> documents = manager.getDocuments();
@@ -178,41 +189,29 @@ public class ApiViewPanel extends SimpleToolWindowPanel {
         });
     }
 
-    /**
-     * 选中指定请求.
-     */
     public boolean select(String connectionId, String method, String path) {
         return treePane.select(connectionId, method, path);
     }
 
     /**
-     * 控制详情面板
+     * Toggle the right pane visibility (toolbar button).
      */
     public void setPreviewState(PreviewState type) {
-        // show current selected api
-        Document document = null;
-        Request api = null;
-        if (type != PreviewState.HIDDEN) {
-            RequestNode[] nodes = treePane.getTree().getSelectedNodes(RequestNode.class, null);
-            if (nodes.length > 0) {
-                RequestNode.Context data = nodes[0].getData();
-                api = data.getRequest();
-                document = data.getDocument();
+        this.previewState = type;
+        if (type == PreviewState.HIDDEN) {
+            splitter.setSecondComponent(null);
+            splitter.setProportion(1f);
+        } else {
+            splitter.setSecondComponent(tabPane);
+            if (splitter.getProportion() >= 0.99f) {
+                splitter.setProportion(0.4f);
             }
         }
-
-        this.previewState = type;
-        showRequestDetail(document, api);
     }
 
-    @NotNull
-    private ApiViewTreePane.RenderArgs getApiTreeData() {
-        DocumentManager manager = DocumentManager.getInstance(project);
-        List<Document> documents = manager.getDocuments();
-
-        ApiViewTreePane.RenderArgs data = new ApiViewTreePane.RenderArgs();
-        data.setDocuments(documents);
-        return data;
+    @Override
+    public void dispose() {
+        tabPane.dispose();
     }
 
     @Override
@@ -226,31 +225,18 @@ public class ApiViewPanel extends SimpleToolWindowPanel {
         return null;
     }
 
-
-    /**
-     * 文档添加后
-     */
     public void onDocumentAdded(Document document) {
         treePane.addDocumentNode(document);
     }
 
-    /**
-     * 文档加载后处理
-     */
     public void onDocumentLoaded(Document document, LoadResult result) {
         treePane.refreshDocumentNode(document, result.isSuccess() && result.isChanged());
     }
 
-    /**
-     * 文档配置修改后
-     */
     public void onDocumentModified(Document document) {
         treePane.refreshDocumentNode(document, false);
     }
 
-    /**
-     * 检测到文档远程更新后
-     */
     public void onDocumentUpdateDetected(Document document) {
         treePane.refreshDocumentNode(document, false);
     }
