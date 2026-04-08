@@ -169,7 +169,13 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
                 && !desc.equals(summary);
         if (descDifferent) {
             panel.add(Box.createVerticalStrut(JBUI.scale(6)));
-            JTextArea dl = new JTextArea(desc);
+            JTextArea dl = new JTextArea(desc) {
+                @Override
+                public Dimension getMaximumSize() {
+                    Dimension preferred = getPreferredSize();
+                    return new Dimension(Integer.MAX_VALUE, preferred.height);
+                }
+            };
             dl.setEditable(false);
             dl.setOpaque(false);
             dl.setLineWrap(true);

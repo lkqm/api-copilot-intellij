@@ -1,6 +1,7 @@
 package io.apicopilot.codegen.ui;
 
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -44,7 +45,9 @@ public class CodeEditorPanel extends JPanel implements Disposable {
         // Always writable so programmatic setText() works.
         // The editor's own readonly flag (passed to createEditor) handles user-edit prevention.
         LightVirtualFile vf = new LightVirtualFile("_body_." + extension, fileType, code);
-        Document document = FileDocumentManager.getInstance().getDocument(vf);
+        Document document = ApplicationManager.getApplication()
+                .runReadAction((com.intellij.openapi.util.Computable<Document>) () ->
+                        FileDocumentManager.getInstance().getDocument(vf));
         if (document == null) {
             // Fallback: orphan document (no folding, but editor still works)
             document = EditorFactory.getInstance().createDocument(code);

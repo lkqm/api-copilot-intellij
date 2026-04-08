@@ -152,6 +152,10 @@ public class BodyPanel extends JPanel implements Disposable {
             rawTypeCombo.setVisible(false);
             populateFormPanel(formDataPanel, content.get("multipart/form-data"));
             cardLayout.show(cardPanel, CARD_FORM);
+        } else if (content.containsKey("application/octet-stream")) {
+            selectBinary();
+        } else if (content.entrySet().stream().anyMatch(entry -> isBinaryMediaType(entry.getKey(), entry.getValue()))) {
+            selectBinary();
         } else {
             selectNone();
         }
@@ -359,6 +363,13 @@ public class BodyPanel extends JPanel implements Disposable {
         cardLayout.show(cardPanel, CARD_NONE);
     }
 
+    private void selectBinary() {
+        btnBinary.setSelected(true);
+        rawTypeCombo.setVisible(false);
+        if (rawActionBar != null) rawActionBar.setVisible(false);
+        cardLayout.show(cardPanel, CARD_BINARY);
+    }
+
     private void onRawTypeChanged() {
         Object sel = rawTypeCombo.getSelectedItem();
         String ext = RAW_JSON.equals(sel) ? "json"
@@ -562,6 +573,18 @@ public class BodyPanel extends JPanel implements Disposable {
         return mt != null ? mt.getSchema() : null;
     }
 
+    private static boolean isBinaryMediaType(String contentType, MediaType mediaType) {
+        if (contentType == null) return false;
+        if ("application/octet-stream".equalsIgnoreCase(contentType)) return true;
+
+        Schema<?> schema = mediaType != null ? mediaType.getSchema() : null;
+        if (schema == null) return false;
+
+        String type = schema.getType();
+        String format = schema.getFormat();
+        return "string".equals(type) && ("binary".equals(format) || "base64".equals(format));
+    }
+
     // ── OpenAPI helpers ───────────────────────────────────────────────────
 
     private static String extractExample(MediaType mediaType) {
@@ -639,6 +662,7 @@ public class BodyPanel extends JPanel implements Disposable {
                 }
                 @Override public boolean isCellEditable(int row, int col) {
                     if (col == COL_DELETE) return false;
+                    if (col == COL_DESC) return false;
                     if (col == COL_ENABLED && isGhostRow(row)) return false;
                     if (col == COL_VALUE && model.getValueAt(row, COL_VALUE) instanceof FileValue) return false;
                     return true;
@@ -646,11 +670,12 @@ public class BodyPanel extends JPanel implements Disposable {
             };
 
             model.addTableModelListener(e -> {
-                if (suppressGhostAdd || e.getColumn() != COL_NAME) return;
+                if (suppressGhostAdd || (e.getColumn() != COL_NAME && e.getColumn() != COL_VALUE)) return;
                 int lastRow = model.getRowCount() - 1;
                 if (lastRow >= 0) {
                     String name = (String) model.getValueAt(lastRow, COL_NAME);
-                    if (name != null && !name.isEmpty()) {
+                    Object value = model.getValueAt(lastRow, COL_VALUE);
+                    if ((name != null && !name.isEmpty()) || hasValueContent(value)) {
                         if (!Boolean.TRUE.equals(model.getValueAt(lastRow, COL_ENABLED))) {
                             model.setValueAt(Boolean.TRUE, lastRow, COL_ENABLED);
                         }
@@ -693,7 +718,6 @@ public class BodyPanel extends JPanel implements Disposable {
             table.getColumnModel().getColumn(COL_DELETE).setCellRenderer(new DeleteButtonRenderer());
             table.getColumnModel().getColumn(COL_NAME).setCellEditor(singleClickEditor);
             table.getColumnModel().getColumn(COL_VALUE).setCellEditor(singleClickEditor);
-            table.getColumnModel().getColumn(COL_DESC).setCellEditor(singleClickEditor);
             table.removeColumn(table.getColumnModel().getColumn(COL_TYPE));
 
             table.getColumnModel().getColumn(COL_NAME).setCellRenderer(new NameCellRenderer());
@@ -898,7 +922,7 @@ public class BodyPanel extends JPanel implements Disposable {
         private void startEditingCell(int row, int viewCol, MouseEvent e) {
             int modelCol = table.convertColumnIndexToModel(viewCol);
             if (!table.isCellEditable(row, viewCol)) return;
-            if (modelCol != COL_NAME && modelCol != COL_VALUE && modelCol != COL_DESC) return;
+            if (modelCol != COL_NAME && modelCol != COL_VALUE) return;
 
             table.changeSelection(row, viewCol, false, false);
             if (!table.editCellAt(row, viewCol, e)) return;
@@ -1084,7 +1108,19 @@ public class BodyPanel extends JPanel implements Disposable {
 
         private boolean isGhostRow(int row) {
             return row == model.getRowCount() - 1
-                    && "".equals(model.getValueAt(row, COL_NAME));
+                    && isBlank((String) model.getValueAt(row, COL_NAME))
+                    && !hasValueContent(model.getValueAt(row, COL_VALUE));
+        }
+
+        private boolean hasValueContent(Object value) {
+            if (value instanceof FileValue) {
+                return !((FileValue) value).files.isEmpty();
+            }
+            return value instanceof String && !((String) value).isEmpty();
+        }
+
+        private boolean isBlank(String value) {
+            return value == null || value.isEmpty();
         }
 
         private class DeleteButtonRenderer extends DefaultTableCellRenderer {

@@ -4,6 +4,7 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.JBSplitter;
+import com.intellij.ui.TitledSeparator;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.concurrency.AppExecutorUtil;
@@ -42,7 +43,6 @@ import java.util.concurrent.Future;
  * </pre>
  */
 public class ApiDebugPanel extends JPanel implements Disposable {
-
     private final Project project;
     private final DebugHttpClient httpClient = new DebugHttpClient();
 
@@ -63,7 +63,10 @@ public class ApiDebugPanel extends JPanel implements Disposable {
     private final CookiesPanel    cookiesPanel    = new CookiesPanel();
     private final AuthPanel       authPanel       = new AuthPanel();
     private final BodyPanel       bodyPanel;
-    private JBTabbedPane paramSubTabs;
+    private final JPanel          paramsPanel     = new JPanel(new BorderLayout());
+    private final JPanel          pathSection     = buildParamsSection("Path", pathParamPanel);
+    private final JPanel          querySection    = buildParamsSection("Query", queryParamPanel);
+    private JBTabbedPane requestTabs;
 
     // Tab dot labels
     private final DotTabLabel paramsTabLabel  = new DotTabLabel("Params");
@@ -71,8 +74,6 @@ public class ApiDebugPanel extends JPanel implements Disposable {
     private final DotTabLabel headersTabLabel = new DotTabLabel("Headers");
     private final DotTabLabel cookiesTabLabel = new DotTabLabel("Cookies");
     private final DotTabLabel bodyTabLabel    = new DotTabLabel("Body");
-    private final DotTabLabel queryTabLabel   = new DotTabLabel("Query Params");
-    private final DotTabLabel pathTabLabel    = new DotTabLabel("Path Params");
 
     // Center layout — request only until first send, then splitter(request + response)
     private final JPanel    centerPanel           = new JPanel(new BorderLayout());
@@ -107,7 +108,7 @@ public class ApiDebugPanel extends JPanel implements Disposable {
         add(buildUrlBar(), BorderLayout.NORTH);
 
         // Initially show only the request panel; response area revealed after first send
-        splitter     = new JBSplitter(true, "ApiDebugPanelSplitter", 0.45f);
+        splitter     = new JBSplitter(true, 0.45f);
         requestPanel = buildRequestPanel();
         splitter.setSecondComponent(responsePanel);
 
@@ -129,15 +130,7 @@ public class ApiDebugPanel extends JPanel implements Disposable {
         queryParamPanel.setParams(request.getParametersIn(ParameterIn.QUERY));
 
         boolean hasPathVars = request.getPath() != null && request.getPath().contains("{");
-        int pathParamTabIdx = indexOfTab(paramSubTabs, "Path Params");
-        if (hasPathVars && pathParamTabIdx == -1) {
-            paramSubTabs.addTab("Path Params", pathParamPanel);
-            paramSubTabs.setTabComponentAt(paramSubTabs.indexOfComponent(pathParamPanel), pathTabLabel);
-        } else if (!hasPathVars && pathParamTabIdx != -1) {
-            paramSubTabs.removeTabAt(pathParamTabIdx);
-        }
-
-        queryTabLabel.setDotVisible(queryParamPanel.hasValues());
+        refreshParamsPanel(hasPathVars);
         paramsTabLabel.setDotVisible(queryParamPanel.hasValues() || pathParamPanel.hasValues());
 
         List<Parameter> headerParams = request.getParametersIn(ParameterIn.HEADER);
@@ -152,6 +145,11 @@ public class ApiDebugPanel extends JPanel implements Disposable {
         bodyPanel.setOperation(request.getOperation());
         headersTabLabel.setDotVisible(headersPanel.hasValues());
         bodyTabLabel.setDotVisible(bodyPanel.hasValues());
+        if (!queryParamPanel.hasValues() && !hasPathVars && bodyPanel.hasValues()) {
+            requestTabs.setSelectedComponent(bodyPanel);
+        } else {
+            requestTabs.setSelectedComponent(paramsPanel);
+        }
 
         responsePanel.showIdle();
         resetSendButton();
@@ -180,6 +178,7 @@ public class ApiDebugPanel extends JPanel implements Disposable {
     private JPanel buildUrlBar() {
         urlField.getEmptyText().setText("https://api.example.com");
         urlField.setBorder(JBUI.Borders.empty(0, 4));
+        urlField.addActionListener(e -> triggerSendAction());
 
         methodBadge.setBorder(JBUI.Borders.empty(0, 8, 0, 8));
 
@@ -224,13 +223,7 @@ public class ApiDebugPanel extends JPanel implements Disposable {
         // [5] Send button
         sendButton.setFocusable(false);
         sendButton.setMargin(new Insets(0, 14, 0, 14));
-        sendButton.addActionListener(e -> {
-            if (isRequestInFlight()) {
-                cancelCurrentRequest();
-            } else {
-                sendRequest();
-            }
-        });
+        sendButton.addActionListener(e -> triggerSendAction());
         gbc.weightx = 0; gbc.gridx = 5; gbc.fill = GridBagConstraints.BOTH;
         urlComposite.add(sendButton, gbc);
 
@@ -243,22 +236,21 @@ public class ApiDebugPanel extends JPanel implements Disposable {
     // ── Request panel ─────────────────────────────────────────────────────
 
     private JPanel buildRequestPanel() {
-        paramSubTabs = new JBTabbedPane(JBTabbedPane.TOP);
-        paramSubTabs.addTab("Query Params", queryParamPanel);
-        paramSubTabs.setTabComponentAt(0, queryTabLabel);
+        paramsPanel.setBorder(JBUI.Borders.empty(8));
+        refreshParamsPanel(true);
 
-        JBTabbedPane requestTabs = new JBTabbedPane(JBTabbedPane.TOP);
-        requestTabs.addTab("Params",        paramSubTabs);  requestTabs.setTabComponentAt(0, paramsTabLabel);
-        requestTabs.addTab("Auth", authPanel);     requestTabs.setTabComponentAt(1, authTabLabel);
-        requestTabs.addTab("Headers",       headersPanel);  requestTabs.setTabComponentAt(2, headersTabLabel);
-        requestTabs.addTab("Cookies",       cookiesPanel);  requestTabs.setTabComponentAt(3, cookiesTabLabel);
-        requestTabs.addTab("Body",          bodyPanel);     requestTabs.setTabComponentAt(4, bodyTabLabel);
+        requestTabs = new JBTabbedPane(JBTabbedPane.TOP);
+        requestTabs.addTab("Params",   paramsPanel);    requestTabs.setTabComponentAt(0, paramsTabLabel);
+        requestTabs.addTab("Auth",     authPanel);      requestTabs.setTabComponentAt(1, authTabLabel);
+        requestTabs.addTab("Headers",  headersPanel);   requestTabs.setTabComponentAt(2, headersTabLabel);
+        requestTabs.addTab("Cookies",  cookiesPanel);   requestTabs.setTabComponentAt(3, cookiesTabLabel);
+        requestTabs.addTab("Body",     bodyPanel);      requestTabs.setTabComponentAt(4, bodyTabLabel);
 
         // Dot listeners
         Runnable updateParamsDot = () -> paramsTabLabel.setDotVisible(
                 queryParamPanel.hasValues() || pathParamPanel.hasValues());
-        queryParamPanel.addValueChangeListener(() -> { queryTabLabel.setDotVisible(queryParamPanel.hasValues()); updateParamsDot.run(); });
-        pathParamPanel.addValueChangeListener(()  -> { pathTabLabel.setDotVisible(pathParamPanel.hasValues());  updateParamsDot.run(); });
+        queryParamPanel.addValueChangeListener(updateParamsDot);
+        pathParamPanel.addValueChangeListener(updateParamsDot);
         authPanel.addValueChangeListener(()    -> authTabLabel.setDotVisible(authPanel.hasValues()));
         headersPanel.addValueChangeListener(() -> headersTabLabel.setDotVisible(headersPanel.hasValues()));
         cookiesPanel.addValueChangeListener(() -> cookiesTabLabel.setDotVisible(cookiesPanel.hasValues()));
@@ -266,6 +258,33 @@ public class ApiDebugPanel extends JPanel implements Disposable {
 
         JPanel panel = new JPanel(new BorderLayout());
         panel.add(requestTabs, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private void refreshParamsPanel(boolean showPathSection) {
+        paramsPanel.removeAll();
+        if (showPathSection) {
+            JPanel top = new JPanel();
+            top.setOpaque(false);
+            top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+            top.add(pathSection);
+            top.add(Box.createVerticalStrut(JBUI.scale(8)));
+            paramsPanel.add(top, BorderLayout.NORTH);
+        }
+        paramsPanel.add(querySection, BorderLayout.CENTER);
+
+        paramsPanel.revalidate();
+        paramsPanel.repaint();
+    }
+
+    private JPanel buildParamsSection(String title, JComponent content) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+
+        TitledSeparator separator = new TitledSeparator(title);
+        separator.setBorder(JBUI.Borders.empty(0, 0, 6, 0));
+        panel.add(separator, BorderLayout.NORTH);
+        panel.add(content, BorderLayout.CENTER);
         return panel;
     }
 
@@ -282,13 +301,6 @@ public class ApiDebugPanel extends JPanel implements Disposable {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
-
-    private static int indexOfTab(JTabbedPane tabs, String title) {
-        for (int i = 0; i < tabs.getTabCount(); i++) {
-            if (title.equals(tabs.getTitleAt(i))) return i;
-        }
-        return -1;
-    }
 
     private String docId() {
         return currentDocument != null ? currentDocument.getId() : "";
@@ -426,6 +438,14 @@ public class ApiDebugPanel extends JPanel implements Disposable {
 
     // ── Send ──────────────────────────────────────────────────────────────
 
+    private void triggerSendAction() {
+        if (isRequestInFlight()) {
+            cancelCurrentRequest();
+        } else {
+            sendRequest();
+        }
+    }
+
     private void sendRequest() {
         if (currentRequest == null || currentDocument == null) return;
 
@@ -503,6 +523,11 @@ public class ApiDebugPanel extends JPanel implements Disposable {
             centerPanel.add(splitter, BorderLayout.CENTER);
             centerPanel.revalidate();
             responsePanelRevealed = true;
+        }
+        else if (responseCollapsed) {
+            splitter.setProportion(savedSplitterProportion);
+            responseCollapsed = false;
+            responsePanel.updateCollapseButtonState(false);
         }
 
         responsePanel.showLoading();

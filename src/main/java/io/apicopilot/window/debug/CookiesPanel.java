@@ -45,17 +45,19 @@ public class CookiesPanel extends BulkEditablePanel {
             }
             @Override public boolean isCellEditable(int row, int col) {
                 if (col == COL_DELETE) return false;
+                if (col == COL_DESC) return false;
                 if (col == COL_ENABLED && isGhostRow(row)) return false;
                 return true;
             }
         };
 
         tableModel.addTableModelListener(e -> {
-            if (suppressGhostAdd || e.getColumn() != COL_NAME) return;
+            if (suppressGhostAdd || (e.getColumn() != COL_NAME && e.getColumn() != COL_VALUE)) return;
             int lastRow = tableModel.getRowCount() - 1;
             if (lastRow >= 0) {
                 String name = (String) tableModel.getValueAt(lastRow, COL_NAME);
-                if (name != null && !name.isEmpty()) {
+                String value = (String) tableModel.getValueAt(lastRow, COL_VALUE);
+                if ((name != null && !name.isEmpty()) || (value != null && !value.isEmpty())) {
                     if (!Boolean.TRUE.equals(tableModel.getValueAt(lastRow, COL_ENABLED))) {
                         tableModel.setValueAt(Boolean.TRUE, lastRow, COL_ENABLED);
                     }
@@ -229,7 +231,8 @@ public class CookiesPanel extends BulkEditablePanel {
 
     private boolean isGhostRow(int row) {
         return row == tableModel.getRowCount() - 1
-                && "".equals(tableModel.getValueAt(row, COL_NAME));
+                && isBlank((String) tableModel.getValueAt(row, COL_NAME))
+                && isBlank((String) tableModel.getValueAt(row, COL_VALUE));
     }
 
     private void ensureGhostRow() {
@@ -238,6 +241,10 @@ public class CookiesPanel extends BulkEditablePanel {
             tableModel.addRow(new Object[]{false, "", "", "", null});
             suppressGhostAdd = false;
         }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isEmpty();
     }
 
     private class DeleteButtonRenderer extends DefaultTableCellRenderer {

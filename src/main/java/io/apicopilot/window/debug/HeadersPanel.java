@@ -47,18 +47,20 @@ public class HeadersPanel extends BulkEditablePanel {
             }
             @Override public boolean isCellEditable(int row, int col) {
                 if (col == COL_DELETE) return false;
+                if (col == COL_DESC) return false;
                 if (col == COL_ENABLED && isGhostRow(row)) return false;
                 return true;
             }
         };
 
-        // When the last row's Key cell gets a non-empty value, promote it and append a new ghost row
+        // When the last ghost row receives key or value input, promote it and append a new ghost row.
         tableModel.addTableModelListener(e -> {
-            if (suppressGhostAdd || e.getColumn() != COL_NAME) return;
+            if (suppressGhostAdd || (e.getColumn() != COL_NAME && e.getColumn() != COL_VALUE)) return;
             int lastRow = tableModel.getRowCount() - 1;
             if (lastRow >= 0) {
                 String name = (String) tableModel.getValueAt(lastRow, COL_NAME);
-                if (name != null && !name.isEmpty()) {
+                String value = (String) tableModel.getValueAt(lastRow, COL_VALUE);
+                if ((name != null && !name.isEmpty()) || (value != null && !value.isEmpty())) {
                     // Ensure promoted row is enabled
                     if (!Boolean.TRUE.equals(tableModel.getValueAt(lastRow, COL_ENABLED))) {
                         tableModel.setValueAt(Boolean.TRUE, lastRow, COL_ENABLED);
@@ -253,7 +255,8 @@ public class HeadersPanel extends BulkEditablePanel {
 
     private boolean isGhostRow(int row) {
         return row == tableModel.getRowCount() - 1
-                && "".equals(tableModel.getValueAt(row, COL_NAME));
+                && isBlank((String) tableModel.getValueAt(row, COL_NAME))
+                && isBlank((String) tableModel.getValueAt(row, COL_VALUE));
     }
 
     private void ensureGhostRow() {
@@ -266,6 +269,10 @@ public class HeadersPanel extends BulkEditablePanel {
 
     private void addRow(boolean enabled, String name, String value, String type, String desc) {
         tableModel.addRow(new Object[]{enabled, name, value, type, desc, null});
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isEmpty();
     }
 
     /** Renders the delete column: shows × for real rows, empty for ghost row. */

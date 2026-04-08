@@ -53,8 +53,9 @@ public abstract class BulkEditablePanel extends JPanel {
     private final JBTextArea     bulkArea;
     private final JToggleButton bulkBtn        = new JToggleButton("Bulk Edit");
 
-    /** Composite panel wrapping the JTableHeader + bulkBtn (table mode). */
-    private JPanel tableHeaderWrapper;
+    /** Shared title row: left native table header, right fixed bulk-edit button. */
+    private JPanel tableHeaderRow;
+    private JPanel tableHeaderButtonBox;
     /** Thin strip above the bulk text area that hosts bulkBtn in bulk mode. */
     private final JPanel bulkHeaderStrip = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 2));
 
@@ -108,9 +109,14 @@ public abstract class BulkEditablePanel extends JPanel {
         // ── Toggle button: flat / text-link style ─────────────────────────
         bulkBtn.setFont(bulkBtn.getFont().deriveFont(11f));
         bulkBtn.setFocusable(false);
+        bulkBtn.setFocusPainted(false);
         bulkBtn.setBorderPainted(false);
+        bulkBtn.setBorder(JBUI.Borders.empty());
         bulkBtn.setContentAreaFilled(false);
         bulkBtn.setOpaque(false);
+        bulkBtn.setMargin(JBUI.emptyInsets());
+        bulkBtn.setRolloverEnabled(false);
+        bulkBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         bulkBtn.addActionListener(e -> {
             if (bulkBtn.isSelected()) {
@@ -118,10 +124,10 @@ public abstract class BulkEditablePanel extends JPanel {
                 bulkBtn.setText("Key-Value Edit");
                 bulkArea.setText(toBulkText());
                 bulkArea.setCaretPosition(0);
-                if (tableHeaderWrapper != null) {
-                    tableHeaderWrapper.remove(bulkBtn);
-                    tableHeaderWrapper.revalidate();
-                    tableHeaderWrapper.repaint();
+                if (tableHeaderButtonBox != null) {
+                    tableHeaderButtonBox.removeAll();
+                    tableHeaderButtonBox.revalidate();
+                    tableHeaderButtonBox.repaint();
                 }
                 bulkHeaderStrip.add(bulkBtn);
                 bulkHeaderStrip.revalidate();
@@ -132,10 +138,10 @@ public abstract class BulkEditablePanel extends JPanel {
                 fromBulkText(bulkArea.getText());
                 bulkHeaderStrip.remove(bulkBtn);
                 bulkHeaderStrip.revalidate();
-                if (tableHeaderWrapper != null) {
-                    tableHeaderWrapper.add(bulkBtn, BorderLayout.EAST);
-                    tableHeaderWrapper.revalidate();
-                    tableHeaderWrapper.repaint();
+                if (tableHeaderButtonBox != null) {
+                    tableHeaderButtonBox.add(bulkBtn, BorderLayout.CENTER);
+                    tableHeaderButtonBox.revalidate();
+                    tableHeaderButtonBox.repaint();
                 }
                 cardLayout.show(cardPanel, CARD_TABLE);
             }
@@ -190,29 +196,58 @@ public abstract class BulkEditablePanel extends JPanel {
             });
         }
 
-        cardPanel.add(scrollPane, CARD_TABLE);
+        JPanel wrapper = new JPanel(new BorderLayout());
+        tableHeaderRow = buildTableHeaderRow();
+        wrapper.add(tableHeaderRow, BorderLayout.NORTH);
+        wrapper.add(scrollPane, BorderLayout.CENTER);
+
+        cardPanel.add(wrapper, CARD_TABLE);
         cardLayout.show(cardPanel, CARD_TABLE);
     }
 
-    /** Wraps the scroll pane's current column header with a composite panel that includes bulkBtn. */
+    /** Moves the native table header into the shared title row and keeps Bulk Edit pinned at the right edge. */
     private void wrapColumnHeader(JScrollPane scrollPane) {
-        JViewport columnHeaderViewport = scrollPane.getColumnHeader();
-        if (columnHeaderViewport == null) return;
-        Component originalHeader = columnHeaderViewport.getView();
-        // Guard: already wrapped
-        if (originalHeader == tableHeaderWrapper) return;
+        if (tableHeaderRow == null) return;
 
-        tableHeaderWrapper = new JPanel(new BorderLayout()) {
+        JViewport columnHeader = scrollPane.getColumnHeader();
+        if (columnHeader == null) return;
+
+        if (columnHeader.getParent() != tableHeaderRow) {
+            tableHeaderRow.add(columnHeader, BorderLayout.CENTER);
+        }
+        if (tableHeaderButtonBox != null && bulkBtn.getParent() != tableHeaderButtonBox) {
+            tableHeaderButtonBox.removeAll();
+            tableHeaderButtonBox.add(bulkBtn, BorderLayout.CENTER);
+        }
+        tableHeaderRow.revalidate();
+        tableHeaderRow.repaint();
+    }
+
+    private JPanel buildTableHeaderRow() {
+        JPanel row = new JPanel(new BorderLayout());
+        row.setOpaque(true);
+        Color headerBg = UIManager.getColor("TableHeader.background");
+        row.setBackground(headerBg != null ? headerBg : getBackground());
+        row.setBorder(JBUI.Borders.customLine(
+                UIManager.getColor("Separator.separatorColor"), 0, 0, 1, 0));
+
+        tableHeaderButtonBox = new JPanel(new BorderLayout()) {
             @Override
-            public Color getBackground() {
-                Color c = UIManager.getColor("TableHeader.background");
-                return c != null ? c : super.getBackground();
+            public Dimension getPreferredSize() {
+                Dimension btnSize = bulkBtn.getPreferredSize();
+                return new Dimension(btnSize.width, Math.max(JBUI.scale(24), btnSize.height));
             }
         };
-        tableHeaderWrapper.setOpaque(true);
-        tableHeaderWrapper.add(originalHeader, BorderLayout.CENTER);
-        tableHeaderWrapper.add(bulkBtn,        BorderLayout.EAST);
-        scrollPane.setColumnHeaderView(tableHeaderWrapper);
+        tableHeaderButtonBox.setOpaque(false);
+        tableHeaderButtonBox.setBorder(JBUI.Borders.empty());
+        tableHeaderButtonBox.add(bulkBtn, BorderLayout.CENTER);
+        row.add(tableHeaderButtonBox, BorderLayout.EAST);
+        return row;
+    }
+
+    private JPanel buildTableHeaderStrip() {
+        // Kept for compatibility with previous call sites; delegate to the shared header row.
+        return buildTableHeaderRow();
     }
 
     /** Serialize current table rows into bulk-edit text. */
