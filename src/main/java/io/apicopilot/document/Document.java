@@ -27,6 +27,11 @@ public class Document {
     private boolean enable = true;
 
     /**
+     * 是否自动更新
+     */
+    private boolean autoSyncEnabled;
+
+    /**
      * 文档内容
      */
     @Tag("content")
@@ -88,6 +93,13 @@ public class Document {
         return openApi;
     }
 
+    public boolean isRemoteDocument() {
+        if (type == DocumentSourceType.Apifox || type == DocumentSourceType.SwaggerHub) {
+            return true;
+        }
+        return type == DocumentSourceType.OpenAPI && openApiConfig != null && openApiConfig.isRemote();
+    }
+
     /**
      * Create a duplicate with a new id and modified name.
      */
@@ -99,6 +111,7 @@ public class Document {
         copy.setOpenApiConfig(this.openApiConfig);
         copy.setApifoxConfig(this.apifoxConfig);
         copy.setSwaggerHubConfig(this.swaggerHubConfig);
+        copy.setAutoSyncEnabled(this.autoSyncEnabled);
         // id is null so save() will generate a new UUID
         return copy;
     }

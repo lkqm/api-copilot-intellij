@@ -43,7 +43,7 @@ public class ApiViewCellRenderer extends ColoredTreeCellRenderer {
             SyncStatus syncStatus = document.getSyncStatus();
             boolean loading = syncStatus == SyncStatus.SYNCING;
             if (loading) {
-                append(" (loading...)", SimpleTextAttributes.GRAY_ITALIC_ATTRIBUTES);
+                append(" (Updating...)", SimpleTextAttributes.GRAY_ITALIC_ATTRIBUTES);
             }
 
             if (!loading && selected && document.getLastSuccessTime() != null) {
@@ -57,7 +57,7 @@ public class ApiViewCellRenderer extends ColoredTreeCellRenderer {
             }
 
             if (!loading && document.isHasUpdate()) {
-                append("  ↻");
+                append("  ↻", SimpleTextAttributes.GRAYED_ATTRIBUTES);
             }
 
         } else if (value instanceof FolderNode) {

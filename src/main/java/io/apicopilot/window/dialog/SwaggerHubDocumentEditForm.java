@@ -7,6 +7,8 @@ import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
@@ -22,6 +24,8 @@ public class SwaggerHubDocumentEditForm implements DocumentEditForm {
     private JTextField ownerField;
     private JTextField apiField;
     private JTextField versionField;
+    private JCheckBox autoSyncEnabledCheckBox;
+    private JLabel autoSyncHintLabel;
     private Document document;
 
     @Override
@@ -36,6 +40,7 @@ public class SwaggerHubDocumentEditForm implements DocumentEditForm {
             apiField.setText(swaggerHubConfig.getApi());
             versionField.setText(swaggerHubConfig.getVersion());
         }
+        autoSyncEnabledCheckBox.setSelected(data.isAutoSyncEnabled());
     }
 
     @Override
@@ -60,6 +65,7 @@ public class SwaggerHubDocumentEditForm implements DocumentEditForm {
         swaggerHubConfig.setOwner(ownerField.getText().trim());
         swaggerHubConfig.setApi(apiField.getText().trim());
         swaggerHubConfig.setVersion(versionField.getText().trim());
+        data.setAutoSyncEnabled(document == null || autoSyncEnabledCheckBox.isSelected());
 
         return data;
     }

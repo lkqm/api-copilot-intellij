@@ -22,6 +22,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,6 +45,7 @@ public class ApiViewTabbedPane extends JPanel implements Disposable {
     private final Project    project;
     private final JBTabs     jbTabs;
     private final CardLayout outerLayout;
+    private final Runnable   onAllTabsClosed;
 
     private final Map<String, TabEntry> tabMap    = new LinkedHashMap<>();
     private       String                previewKey = null;
@@ -63,10 +66,11 @@ public class ApiViewTabbedPane extends JPanel implements Disposable {
 
     // ── Constructor ───────────────────────────────────────────────────────
 
-    public ApiViewTabbedPane(Project project) {
+    public ApiViewTabbedPane(Project project, Runnable onAllTabsClosed) {
         super(new CardLayout());
-        this.project     = project;
-        this.outerLayout = (CardLayout) getLayout();
+        this.project         = project;
+        this.outerLayout     = (CardLayout) getLayout();
+        this.onAllTabsClosed = onAllTabsClosed;
 
         jbTabs = JBTabsFactory.createTabs(project, this);
         jbTabs.getPresentation()
@@ -111,6 +115,15 @@ public class ApiViewTabbedPane extends JPanel implements Disposable {
                 if (newSel == null) return;
                 TabEntry entry = tabMap.get((String) newSel.getObject());
                 if (entry != null) entry.pane.refreshDebugUrl();
+            }
+        });
+        jbTabs.addTabMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() != 2 || !SwingUtilities.isLeftMouseButton(e)) return;
+                TabInfo clickedInfo = jbTabs.findInfo(e);
+                if (clickedInfo == null) return;
+                promotePreviewTab((String) clickedInfo.getObject());
             }
         });
 
@@ -229,8 +242,12 @@ public class ApiViewTabbedPane extends JPanel implements Disposable {
     }
 
     private void promotePreviewTab() {
-        if (previewKey == null) return;
-        TabEntry entry = tabMap.get(previewKey);
+        promotePreviewTab(previewKey);
+    }
+
+    private void promotePreviewTab(String key) {
+        if (key == null || !key.equals(previewKey)) return;
+        TabEntry entry = tabMap.get(key);
         previewKey = null;
         if (entry == null) return;
         entry.isPreview = false;
@@ -254,7 +271,10 @@ public class ApiViewTabbedPane extends JPanel implements Disposable {
         jbTabs.removeTab(entry.tabInfo);
         if (key.equals(previewKey)) previewKey = null;
         entry.pane.dispose();
-        if (mayShowEmpty && tabMap.isEmpty()) outerLayout.show(this, CARD_EMPTY);
+        if (mayShowEmpty && tabMap.isEmpty()) {
+            outerLayout.show(this, CARD_EMPTY);
+            onAllTabsClosed.run();
+        }
     }
 
     private void closeTab(String key) { removeTabEntry(key, true); }
@@ -267,6 +287,7 @@ public class ApiViewTabbedPane extends JPanel implements Disposable {
         tabMap.clear();
         previewKey = null;
         outerLayout.show(this, CARD_EMPTY);
+        onAllTabsClosed.run();
     }
 
     private void closeOtherTabs(String keepKey) {

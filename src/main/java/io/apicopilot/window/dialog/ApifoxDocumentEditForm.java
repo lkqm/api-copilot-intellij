@@ -7,6 +7,8 @@ import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
@@ -20,6 +22,8 @@ public class ApifoxDocumentEditForm implements DocumentEditForm {
     private JTextField serviceUrlField;
     private JTextField accessTokenField;
     private JTextField projectIdField;
+    private JCheckBox autoSyncEnabledCheckBox;
+    private JLabel autoSyncHintLabel;
     private Document document;
 
     @Override
@@ -32,6 +36,7 @@ public class ApifoxDocumentEditForm implements DocumentEditForm {
             accessTokenField.setText(apifoxConfig.getAccessToken());
             projectIdField.setText(apifoxConfig.getProjectId());
         }
+        autoSyncEnabledCheckBox.setSelected(data.isAutoSyncEnabled());
     }
 
     @Override
@@ -54,6 +59,7 @@ public class ApifoxDocumentEditForm implements DocumentEditForm {
         apifoxConfig.setServiceUrl(serviceUrlField.getText().trim());
         apifoxConfig.setAccessToken(accessTokenField.getText().trim());
         apifoxConfig.setProjectId(projectIdField.getText().trim());
+        data.setAutoSyncEnabled(document == null || autoSyncEnabledCheckBox.isSelected());
 
         return data;
     }

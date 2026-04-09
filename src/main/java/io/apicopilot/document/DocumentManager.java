@@ -108,17 +108,38 @@ public class DocumentManager {
             return new CheckUpdateResult(false, false, "Unknow document type");
         }
 
+        long checkTime = System.currentTimeMillis();
+        CheckUpdateResult checkResult;
         try {
             ResolveResult result = resolver.resolve(true);
             if (!result.isSuccess()) {
-                return new CheckUpdateResult(false, false, result.getFailReason());
+                checkResult =  new CheckUpdateResult(false, false, result.getFailReason());
+            } else {
+                String remoteContent = result.getOpenApiContent();
+                boolean changed = StringUtils.isNotEmpty(remoteContent) && !remoteContent.equals(document.getContent());
+                checkResult = CheckUpdateResult.builder()
+                        .success(true)
+                        .changed(changed)
+                        .content(remoteContent)
+                        .build();
             }
-            String remoteContent = result.getOpenApiContent();
-            boolean changed = StringUtils.isNotEmpty(remoteContent) && !remoteContent.equals(document.getContent());
-            return new CheckUpdateResult(true, changed, null);
         } catch (Exception e) {
-            return new CheckUpdateResult(false, false, ExceptionUtils.getMessage(e));
+            checkResult = new CheckUpdateResult(false, false, ExceptionUtils.getMessage(e));
         }
+
+        if(checkResult.isSuccess()) {
+            document.setHasUpdate(checkResult.isChanged());
+        }
+        document.setLastCheckTime(checkTime);
+        DocumentRepository.getInstance(project).save(document);
+
+        // publish topic
+        if(checkResult.isSuccess() && checkResult.isChanged()) {
+            DocumentTopic topic = project.getMessageBus().syncPublisher(DocumentTopic.TOPIC);
+            topic.onUpdateDetected(document);
+        }
+
+        return checkResult;
     }
 
     /**

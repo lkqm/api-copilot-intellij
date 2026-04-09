@@ -7,8 +7,12 @@ import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 /**
  * Document edit form.
@@ -18,7 +22,29 @@ public class OpenApiDocumentEditForm implements DocumentEditForm {
     private JTextField openApiFileField;
     private JPanel panel;
     private JTextField nameField;
+    private JCheckBox autoSyncEnabledCheckBox;
+    private JLabel autoSyncHintLabel;
     private Document document;
+
+    public OpenApiDocumentEditForm() {
+        openApiFileField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                updateAutoSyncVisibility();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                updateAutoSyncVisibility();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                updateAutoSyncVisibility();
+            }
+        });
+        updateAutoSyncVisibility();
+    }
 
     @Override
     public void set(@NotNull Document data) {
@@ -28,6 +54,8 @@ public class OpenApiDocumentEditForm implements DocumentEditForm {
         if (config != null) {
             openApiFileField.setText(config.getPath());
         }
+        autoSyncEnabledCheckBox.setSelected(data.isAutoSyncEnabled());
+        updateAutoSyncVisibility();
     }
 
     @Override
@@ -43,7 +71,16 @@ public class OpenApiDocumentEditForm implements DocumentEditForm {
         if (data.getOpenApiConfig() == null) {
             data.setOpenApiConfig(new Document.OpenApiConfig());
         }
-        data.getOpenApiConfig().setPath(openApiFileField.getText());
+        String path = openApiFileField.getText().trim();
+        data.getOpenApiConfig().setPath(path);
+        boolean remote = isRemotePath(path);
+        if (document == null) {
+            data.setAutoSyncEnabled(remote);
+        } else if (!remote) {
+            data.setAutoSyncEnabled(false);
+        } else {
+            data.setAutoSyncEnabled(autoSyncEnabledCheckBox.isSelected());
+        }
         return data;
     }
 
@@ -57,5 +94,23 @@ public class OpenApiDocumentEditForm implements DocumentEditForm {
             return new ValidationInfo("OpenAPI file is required", openApiFileField);
         }
         return null;
+    }
+
+    private void updateAutoSyncVisibility() {
+        boolean remote = isRemotePath(openApiFileField.getText());
+        autoSyncEnabledCheckBox.setVisible(remote);
+        autoSyncHintLabel.setVisible(remote);
+        if (remote) {
+            if (document == null) {
+                autoSyncEnabledCheckBox.setSelected(true);
+            }
+        } else {
+            autoSyncEnabledCheckBox.setSelected(false);
+        }
+    }
+
+    private boolean isRemotePath(String path) {
+        String trimmedPath = path == null ? "" : path.trim();
+        return trimmedPath.startsWith("http://") || trimmedPath.startsWith("https://");
     }
 }

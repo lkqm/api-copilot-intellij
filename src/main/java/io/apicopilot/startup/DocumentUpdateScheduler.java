@@ -39,26 +39,22 @@ public class DocumentUpdateScheduler implements Disposable {
             return;
         }
 
-        DocumentTopic topic = project.getMessageBus().syncPublisher(DocumentTopic.TOPIC);
         for (Document document : documents) {
-            // skip sync failed
-            if(document.getSyncStatus() == SyncStatus.FAILED) {
-                continue;
-            }
-            // skip has update
-            if (document.isHasUpdate()) {
+            // skip syncing
+            if(document.getSyncStatus() == SyncStatus.SYNCING) {
                 continue;
             }
 
-            // do check
-            long checkTime = System.currentTimeMillis();
-            document.setLastCheckTime(checkTime);
-            CheckUpdateResult checkResult = manager.checkUpdate(document);
-            boolean hasUpdate = checkResult.isSuccess() && checkResult.isChanged();
-            document.setHasUpdate(hasUpdate);
-            DocumentRepository.getInstance(project).save(document);
-            if (hasUpdate) {
-                topic.onUpdateDetected(document);
+            // skip has update for check
+            if (document.isHasUpdate() && !document.isAutoSyncEnabled()) {
+                continue;
+            }
+
+            // do check and update
+            if(!document.isAutoSyncEnabled()) {
+                manager.checkUpdate(document);
+            } else {
+                manager.reloadDocument(document);
             }
         }
     }

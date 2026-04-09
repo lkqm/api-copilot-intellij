@@ -24,4 +24,15 @@ public class CheckUpdateResult {
      * 失败原因
      */
     private String failReason;
+
+    /**
+     * 文档内容
+     */
+    private String content;
+
+    public CheckUpdateResult(boolean success, boolean changed, String failReason) {
+        this.success = success;
+        this.changed = changed;
+        this.failReason = failReason;
+    }
 }

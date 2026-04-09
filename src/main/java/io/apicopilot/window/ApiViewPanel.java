@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
+import com.intellij.openapi.ui.Splitter;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.concurrency.AppExecutorUtil;
@@ -41,7 +42,7 @@ import java.util.stream.Collectors;
  */
 public class ApiViewPanel extends SimpleToolWindowPanel implements Disposable {
 
-    private static final int LEFT_PANEL_MIN_WIDTH = 260;
+    private static final int LEFT_PANEL_MIN_WIDTH = 170;
 
     private final Project project;
     @Getter
@@ -51,11 +52,12 @@ public class ApiViewPanel extends SimpleToolWindowPanel implements Disposable {
     private final JBSplitter splitter;
     @Getter
     private PreviewState previewState;
+    private float savedSplitterProportion = 0.4f;
 
     public ApiViewPanel(@NotNull Project project) {
         super(true, true);
         this.project = project;
-        this.tabPane = new ApiViewTabbedPane(project);
+        this.tabPane = new ApiViewTabbedPane(project, () -> setPreviewState(PreviewState.HIDDEN));
         this.previewState = PreviewState.HIDDEN;
         this.treePane = new ApiViewTreePane(project);
         JPanel leftPanel = new JPanel(new BorderLayout());
@@ -64,6 +66,11 @@ public class ApiViewPanel extends SimpleToolWindowPanel implements Disposable {
         leftPanel.add(treePane, BorderLayout.CENTER);
         this.splitter = new JBSplitter(false, "ApiViewPanelSplitter", 1);
         this.splitter.setFirstComponent(leftPanel);
+        this.splitter.addPropertyChangeListener(Splitter.PROP_PROPORTION, event -> {
+            if (previewState != PreviewState.HIDDEN && splitter.getSecondComponent() != null) {
+                savedSplitterProportion = splitter.getProportion();
+            }
+        });
         this.setContent(this.splitter);
         initEvent();
         DumbService.getInstance(project).smartInvokeLater(this::firstLoad);
@@ -126,9 +133,7 @@ public class ApiViewPanel extends SimpleToolWindowPanel implements Disposable {
         if (previewState == PreviewState.HIDDEN) {
             previewState = PreviewState.VERTICAL;
             splitter.setSecondComponent(tabPane);
-            if (splitter.getProportion() >= 0.99f) {
-                splitter.setProportion(0.4f);
-            }
+            splitter.setProportion(savedSplitterProportion);
         }
     }
 
@@ -195,13 +200,13 @@ public class ApiViewPanel extends SimpleToolWindowPanel implements Disposable {
     public void setPreviewState(PreviewState type) {
         this.previewState = type;
         if (type == PreviewState.HIDDEN) {
+            if (splitter.getSecondComponent() != null) {
+                savedSplitterProportion = splitter.getProportion();
+            }
             splitter.setSecondComponent(null);
-            splitter.setProportion(1f);
         } else {
             splitter.setSecondComponent(tabPane);
-            if (splitter.getProportion() >= 0.99f) {
-                splitter.setProportion(0.4f);
-            }
+            splitter.setProportion(savedSplitterProportion);
         }
     }
 
