@@ -42,6 +42,8 @@ import java.util.stream.Collectors;
  */
 public class ApiViewPanel extends SimpleToolWindowPanel implements Disposable {
 
+    private static final float DEFAULT_SPLITTER_PROPORTION = 0.4f;
+
     private final Project project;
     @Getter
     private final ApiViewTreePane treePane;
@@ -50,7 +52,7 @@ public class ApiViewPanel extends SimpleToolWindowPanel implements Disposable {
     private final JBSplitter splitter;
     @Getter
     private PreviewState previewState;
-    private float savedSplitterProportion = 0.4f;
+    private float savedSplitterProportion = DEFAULT_SPLITTER_PROPORTION;
 
     public ApiViewPanel(@NotNull Project project) {
         super(true, true);
@@ -241,5 +243,18 @@ public class ApiViewPanel extends SimpleToolWindowPanel implements Disposable {
 
     public void onDocumentUpdateDetected(Document document) {
         treePane.refreshDocumentNode(document, false);
+    }
+
+    public float getSavedSplitterProportion() {
+        return savedSplitterProportion;
+    }
+
+    public void setSavedSplitterProportion(float proportion) {
+        savedSplitterProportion = Float.isNaN(proportion) || Float.isInfinite(proportion)
+                ? DEFAULT_SPLITTER_PROPORTION
+                : proportion;
+        if (previewState != PreviewState.HIDDEN && splitter.getSecondComponent() != null) {
+            splitter.setProportion(savedSplitterProportion);
+        }
     }
 }

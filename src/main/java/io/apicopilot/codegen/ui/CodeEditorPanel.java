@@ -8,6 +8,7 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.EditorSettings;
 import com.intellij.openapi.editor.ex.EditorEx;
+import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.fileTypes.FileTypeManager;
@@ -38,20 +39,9 @@ public class CodeEditorPanel extends JPanel implements Disposable {
     private void createEditor(String code, String extension) {
         FileType fileType = FileTypeManager.getInstance().getFileTypeByExtension(extension);
 
-        // Use LightVirtualFile so the document is backed by a VirtualFile.
-        // This allows IntelliJ's PSI infrastructure to associate a PsiFile with the
-        // document, which is required for language services such as code folding,
-        // syntax highlighting, and the DaemonCodeAnalyzer to function properly.
-        // Always writable so programmatic setText() works.
-        // The editor's own readonly flag (passed to createEditor) handles user-edit prevention.
-        LightVirtualFile vf = new LightVirtualFile("_body_." + extension, fileType, code);
-        Document document = ApplicationManager.getApplication()
-                .runReadAction((com.intellij.openapi.util.Computable<Document>) () ->
-                        FileDocumentManager.getInstance().getDocument(vf));
-        if (document == null) {
-            // Fallback: orphan document (no folding, but editor still works)
-            document = EditorFactory.getInstance().createDocument(code);
-        }
+        // Use a plain document plus a file-type highlighter so we keep syntax coloring
+        // without creating a PSI/VirtualFile identity that would trigger project-level analysis.
+        Document document = EditorFactory.getInstance().createDocument(code);
 
         editor = EditorFactory.getInstance().createEditor(document, project, fileType, this.readonly);
 
@@ -64,6 +54,8 @@ public class CodeEditorPanel extends JPanel implements Disposable {
         settings.setWheelFontChangeEnabled(false);
         settings.setCaretRowShown(false);
         if (editor instanceof EditorEx) {
+            ((EditorEx) editor).setHighlighter(
+                    EditorHighlighterFactory.getInstance().createEditorHighlighter(project, fileType));
             JScrollBar scrollBar = ((EditorEx) editor).getScrollPane().getVerticalScrollBar();
             scrollBar.setOpaque(false);
         }

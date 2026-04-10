@@ -23,6 +23,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 
 import javax.swing.*;
+import javax.swing.event.ChangeListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
@@ -307,10 +308,16 @@ public class BodyPanel extends JPanel implements Disposable {
     }
 
     private JPanel buildRawActionBar() {
-        JButton autoGenBtn = buildTextButton("Auto Generate", new Color(0x2E7D32));
+        JButton autoGenBtn = buildTextButton("Auto Generate");
+        autoGenBtn.setFont(autoGenBtn.getFont().deriveFont(11f));
+        autoGenBtn.setBorder(JBUI.Borders.empty());
+        autoGenBtn.setMargin(new Insets(0, 0, 0, 0));
         autoGenBtn.addActionListener(e -> onAutoGenerate());
 
-        JButton beautifyBtn = buildTextButton("Beautify", new Color(0x1565C0));
+        JButton beautifyBtn = buildTextButton("Beautify");
+        beautifyBtn.setFont(beautifyBtn.getFont().deriveFont(11f));
+        beautifyBtn.setBorder(JBUI.Borders.empty());
+        beautifyBtn.setMargin(new Insets(0, 0, 0, 0));
         beautifyBtn.addActionListener(e -> onBeautify());
 
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 3));
@@ -320,18 +327,12 @@ public class BodyPanel extends JPanel implements Disposable {
         return bar;
     }
 
-    /** A flat text-only button: colored label, no border/background; hover shows subtle bg. */
-    private static JButton buildTextButton(String text, Color textColor) {
-        JButton btn = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
-                if (getModel().isRollover()) {
-                    g.setColor(new Color(textColor.getRed(), textColor.getGreen(), textColor.getBlue(), 18));
-                    g.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
-                }
-                super.paintComponent(g);
-            }
-        };
-        btn.setForeground(textColor);
+    /** A flat text-only button: gray label, no border/background; hover brightens text only. */
+    private static JButton buildTextButton(String text) {
+        Color baseTextColor = new Color(0x7A7A7A);
+        Color hoverTextColor = new Color(0xB5B5B5);
+        JButton btn = new JButton(text);
+        btn.setForeground(baseTextColor);
         btn.setFont(btn.getFont().deriveFont(12f));
         btn.setFocusable(false);
         btn.setContentAreaFilled(false);
@@ -339,6 +340,10 @@ public class BodyPanel extends JPanel implements Disposable {
         btn.setOpaque(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.setMargin(new Insets(1, 2, 1, 2));
+        btn.setRolloverEnabled(true);
+        ChangeListener rolloverListener = e ->
+                btn.setForeground(btn.getModel().isRollover() ? hoverTextColor : baseTextColor);
+        btn.getModel().addChangeListener(rolloverListener);
         return btn;
     }
 

@@ -7,6 +7,7 @@ import com.intellij.ui.JBSplitter;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBScrollPane;
+import io.apicopilot.codegen.CodegenSettings;
 import io.apicopilot.codegen.core.GenerateConfigs;
 import io.apicopilot.codegen.generator.RequestCodeGenerator;
 import io.apicopilot.codegen.model.RequestTemplate;
@@ -119,6 +120,13 @@ public class GenerateRequestPanel extends JBPanel<GenerateRequestPanel> implemen
     }
 
     private void handleLanguageChange(ListSelectionEvent e) {
+        if (e.getValueIsAdjusting()) {
+            return;
+        }
+        String language = languageList.getSelectedValue();
+        if (StringUtils.isNotBlank(language) && project != null) {
+            CodegenSettings.getInstance(project).requestLastLanguage = language;
+        }
         List<String> requestTypes = getRequestTypes();
         requestTypesBar.setVisible(CollectionUtils.isNotEmpty(requestTypes));
         requestTypesBar.setOptions(requestTypes, true);

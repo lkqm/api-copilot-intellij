@@ -122,22 +122,23 @@ public class ApiModelGenerator {
         }
         String operationId = api.getOperationId();
         String defaultRequestType = StringUtils.isEmpty(operationId) ? "Response" : NamedUtils.toPascalCase(operationId) + "Response";
-        apiResponse.getContent().entrySet().stream()
-                .filter(entry -> entry.getValue() != null && entry.getValue().getSchema() != null)
-                .findFirst().ifPresent(entry -> {
-                    String contentType = entry.getKey();
-                    MediaType mediaType = entry.getValue();
-                    ResponseBodyType responseBodyType = ResponseBodyType.fromContentType(contentType);
-                    PropertyModel responseBody = PropertyModel.of(mediaType.getSchema(), false, typeResolver, defaultRequestType);
-                    if (StringUtils.isEmpty(responseBody.getDescription()) && StringUtils.isNotEmpty(api.getSummary())) {
-                        responseBody.setDescription(api.getSummary() + " Response");
-                    }
-                    if (responseBodyType != null) {
-                        api.setResponseBodyType(responseBodyType.name());
-                    }
-                    responseBody.setIsResponseModel(true);
-                    api.setResponseBody(responseBody);
-                });
+        java.util.Map.Entry<String, MediaType> responseEntry = OpenApiUtils.getPreferredContentEntry(apiResponse.getContent());
+        if (responseEntry == null || responseEntry.getValue() == null || responseEntry.getValue().getSchema() == null) {
+            return;
+        }
+
+        String contentType = responseEntry.getKey();
+        MediaType mediaType = responseEntry.getValue();
+        ResponseBodyType responseBodyType = ResponseBodyType.fromContentType(contentType);
+        PropertyModel responseBody = PropertyModel.of(mediaType.getSchema(), false, typeResolver, defaultRequestType);
+        if (StringUtils.isEmpty(responseBody.getDescription()) && StringUtils.isNotEmpty(api.getSummary())) {
+            responseBody.setDescription(api.getSummary() + " Response");
+        }
+        if (responseBodyType != null) {
+            api.setResponseBodyType(responseBodyType.name());
+        }
+        responseBody.setIsResponseModel(true);
+        api.setResponseBody(responseBody);
     }
 
     private void setFlatModels(ApiModel api) {

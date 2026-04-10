@@ -7,6 +7,7 @@ import io.apicopilot.model.Property;
 import io.apicopilot.model.Request;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
@@ -71,7 +72,8 @@ public class OpenApiUtils {
         if (mediaType == null || mediaType.getSchema() == null) {
             return "";
         }
-        return getJsonExample(mediaType.getSchema());
+        String example = getExampleText(mediaType, "application/json");
+        return example != null ? example : "";
     }
 
     /**
@@ -149,6 +151,63 @@ public class OpenApiUtils {
         return gson.toJson(example);
     }
 
+    public String getExampleText(MediaType mediaType, String contentType) {
+        if (mediaType == null) {
+            return null;
+        }
+
+        Object mediaExample = mediaType.getExample();
+        if (mediaExample != null) {
+            return stringifyExampleValue(mediaExample, contentType);
+        }
+
+        Map<String, Example> examples = mediaType.getExamples();
+        if (examples != null) {
+            for (Example example : examples.values()) {
+                if (example == null) continue;
+                if (example.getValue() != null) {
+                    return stringifyExampleValue(example.getValue(), contentType);
+                }
+                if (StringUtils.isNotBlank(example.getExternalValue())) {
+                    return example.getExternalValue();
+                }
+            }
+        }
+
+        return getExampleText(mediaType.getSchema(), contentType);
+    }
+
+    public String getExampleText(Schema<?> schema, String contentType) {
+        if (schema == null) {
+            return null;
+        }
+        if (schema.getExample() != null) {
+            return stringifyExampleValue(schema.getExample(), contentType);
+        }
+        if (schema.getDefault() != null) {
+            return stringifyExampleValue(schema.getDefault(), contentType);
+        }
+        List<?> enumValues = schema.getEnum();
+        if (enumValues != null && !enumValues.isEmpty()) {
+            return stringifyExampleValue(enumValues.get(0), contentType);
+        }
+        return getJsonExample(schema);
+    }
+
+    private String stringifyExampleValue(Object value, String contentType) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof String) {
+            return (String) value;
+        }
+        Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
+        if (contentType != null && contentType.toLowerCase(Locale.ROOT).contains("json")) {
+            return gson.toJson(value);
+        }
+        return String.valueOf(value);
+    }
+
     private Object doGetJsonExample(Schema<?> schema) {
         if (schema == null) {
             return null;
@@ -216,11 +275,11 @@ public class OpenApiUtils {
             return null;
         }
 
-        MediaType mediaType = apiResponse.getContent().get("application/json");
-        if (mediaType == null) {
+        Map.Entry<String, MediaType> contentEntry = getPreferredContentEntry(apiResponse.getContent());
+        if (contentEntry == null) {
             return null;
         }
-        return getJsonExample(mediaType.getSchema());
+        return getExampleText(contentEntry.getValue(), contentEntry.getKey());
     }
 
     /**
@@ -239,6 +298,62 @@ public class OpenApiUtils {
             apiResponse = responses.get("202");
         }
         return apiResponse;
+    }
+
+    public Map.Entry<String, MediaType> getPreferredContentEntry(Map<String, MediaType> content) {
+        if (content == null || content.isEmpty()) {
+            return null;
+        }
+
+        Map.Entry<String, MediaType> exactJson = findContentEntry(content, "application/json", true);
+        if (exactJson != null) {
+            return exactJson;
+        }
+
+        Map.Entry<String, MediaType> structuredJson = content.entrySet().stream()
+                .filter(entry -> entry.getValue() != null)
+                .filter(entry -> entry.getValue().getSchema() != null)
+                .filter(entry -> {
+                    String key = entry.getKey();
+                    return key != null && key.endsWith("+json");
+                })
+                .findFirst()
+                .orElse(null);
+        if (structuredJson != null) {
+            return structuredJson;
+        }
+
+        Map.Entry<String, MediaType> firstTyped = content.entrySet().stream()
+                .filter(entry -> entry.getValue() != null)
+                .filter(entry -> entry.getValue().getSchema() != null)
+                .filter(entry -> {
+                    String key = entry.getKey();
+                    return key != null && !key.equals("*/*") && !key.endsWith("/*");
+                })
+                .findFirst()
+                .orElse(null);
+        if (firstTyped != null) {
+            return firstTyped;
+        }
+
+        Map.Entry<String, MediaType> wildcardJson = findContentEntry(content, "*/*", true);
+        if (wildcardJson != null) {
+            return wildcardJson;
+        }
+
+        return content.entrySet().stream()
+                .filter(entry -> entry.getValue() != null)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private Map.Entry<String, MediaType> findContentEntry(Map<String, MediaType> content, String contentType, boolean requireSchema) {
+        return content.entrySet().stream()
+                .filter(entry -> Objects.equals(entry.getKey(), contentType))
+                .filter(entry -> entry.getValue() != null)
+                .filter(entry -> !requireSchema || entry.getValue().getSchema() != null)
+                .findFirst()
+                .orElse(null);
     }
 
     public boolean isObjectType(Schema<?> schema) {

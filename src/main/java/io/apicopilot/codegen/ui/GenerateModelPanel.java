@@ -11,9 +11,11 @@ import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBScrollPane;
+import io.apicopilot.codegen.CodegenSettings;
 import io.apicopilot.codegen.core.GenerateConfigs;
 import io.apicopilot.codegen.generator.ModelCodeGenerator;
 import io.apicopilot.codegen.model.CodeTemplate;
+import io.apicopilot.codegen.model.GenerateModelTarget;
 import io.apicopilot.codegen.model.ModelTemplate;
 import io.apicopilot.document.Document;
 import io.apicopilot.model.Request;
@@ -49,9 +51,13 @@ public class GenerateModelPanel extends JBPanel<GenerateModelPanel> implements D
     private ModelTemplate template;
 
     public GenerateModelPanel(Project project, Document document, Request request) {
+        this(project, document, request, GenerateModelTarget.all());
+    }
+
+    public GenerateModelPanel(Project project, Document document, Request request, GenerateModelTarget target) {
         super(new BorderLayout());
         this.project = project;
-        this.codeGenerator = new ModelCodeGenerator(document, request);
+        this.codeGenerator = new ModelCodeGenerator(document, request, target);
 
         setPreferredSize(new Dimension(880, 420));
         JPanel leftPanel = createLeftPanel();
@@ -129,6 +135,9 @@ public class GenerateModelPanel extends JBPanel<GenerateModelPanel> implements D
         String language = (String) languageComboBox.getSelectedItem();
         if (language == null) {
             return;
+        }
+        if (project != null) {
+            CodegenSettings.getInstance(project).modelLastLanguage = language;
         }
         rebuildOptionsPanel(language);
         doGenerateCode();

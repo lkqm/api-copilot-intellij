@@ -55,6 +55,7 @@ public class ApiViewImpl implements PersistentStateComponent<Element>, ApiView {
     private static final String ATTR_METHOD   = "method";
     private static final String ATTR_PATH     = "path";
     private static final String ATTR_SELECTED = "selected";
+    private static final String ATTR_SPLITTER_PROPORTION = "splitterProportion";
 
     private final Project project;
     private boolean isInitialized;
@@ -64,6 +65,8 @@ public class ApiViewImpl implements PersistentStateComponent<Element>, ApiView {
     private Set<String>        pendingExpandedKeys;
     /** Tab states loaded before the panel is ready; applied after firstLoad(). */
     private List<SavedTabState> pendingTabs;
+    /** Splitter proportion loaded before the panel is ready; applied after panel creation. */
+    private Float pendingSplitterProportion;
 
 
     public ApiViewImpl(Project project) {
@@ -79,6 +82,10 @@ public class ApiViewImpl implements PersistentStateComponent<Element>, ApiView {
         this.isInitialized = true;
         this.toolWindow = toolWindow;
         this.panel = new ApiViewPanel(project);
+        if (pendingSplitterProportion != null) {
+            panel.setSavedSplitterProportion(pendingSplitterProportion);
+            pendingSplitterProportion = null;
+        }
 
         // set tool window title actions
         AnAction action = ActionManager.getInstance().getAction("ApiViewToolbar");
@@ -209,11 +216,24 @@ public class ApiViewImpl implements PersistentStateComponent<Element>, ApiView {
             }
             root.addContent(tabs);
         }
+
+        root.setAttribute(ATTR_SPLITTER_PROPORTION, String.valueOf(panel.getSavedSplitterProportion()));
         return root;
     }
 
     @Override
     public void loadState(@NotNull Element element) {
+        String splitterProportionAttr = element.getAttributeValue(ATTR_SPLITTER_PROPORTION);
+        if (splitterProportionAttr != null) {
+            try {
+                float proportion = Float.parseFloat(splitterProportionAttr);
+                if (panel != null) panel.setSavedSplitterProportion(proportion);
+                else pendingSplitterProportion = proportion;
+            } catch (NumberFormatException ignored) {
+                pendingSplitterProportion = null;
+            }
+        }
+
         // Tree expansion
         Element expanded = element.getChild(ELEM_EXPANDED);
         if (expanded != null) {

@@ -1,5 +1,6 @@
 package io.apicopilot.window;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
@@ -9,14 +10,22 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.util.ui.JBUI;
+import io.apicopilot.codegen.ui.GenerateModelDialog;
 import io.apicopilot.codegen.ui.CodeEditorPanel;
+import io.apicopilot.codegen.ui.GenerateRequestDialog;
+import io.apicopilot.codegen.model.GenerateModelTarget;
 import io.apicopilot.document.Document;
+import io.apicopilot.icon.Icons;
 import io.apicopilot.model.Property;
 import io.apicopilot.model.Request;
+import io.apicopilot.util.MarkdownGenerator;
+import io.apicopilot.util.NamedUtils;
 import io.apicopilot.util.OpenApiUtils;
 import io.apicopilot.window.debug.MethodBadge;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.responses.ApiResponse;
@@ -28,9 +37,12 @@ import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.awt.geom.RoundRectangle2D;
+import java.awt.font.TextAttribute;
 import java.util.List;
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * Native-UI API document preview pane.
@@ -110,8 +122,12 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
         panel.setAlignmentX(LEFT_ALIGNMENT);
         panel.setOpaque(false);
         panel.setBorder(JBUI.Borders.empty(10, 0, 10, 0));
+        List<JComponent> headerActions = Arrays.asList(
+                createHeaderCopyMarkdownButton(),
+                createHeaderGenerateCodeButton());
+        JComponent actionSlot = createHoverActionSlot(headerActions, JBUI.scale(4));
 
-        // Row 1: summary + DEPRECATED badge
+        // Row 1: summary + generate code dropdown
         {
             JPanel summaryRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
             summaryRow.setOpaque(false);
@@ -125,7 +141,7 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
                 summaryRow.add(sl);
             }
 
-            panel.add(summaryRow);
+            panel.add(wrapTrailingAction(summaryRow, actionSlot));
             panel.add(Box.createVerticalStrut(JBUI.scale(5)));
         }
 
@@ -151,6 +167,7 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
                         @Override public void mouseEntered(MouseEvent e) { hovered = true; setDashedUnderline(true); }
                         @Override public void mouseExited(MouseEvent e)  { hovered = false; setDashedUnderline(false); }
                         @Override public void mouseClicked(MouseEvent e) {
+                            if (!isLeftSingleClick(e)) return;
                             CopyPasteManager.getInstance().setContents(new StringSelection(path));
                             showCopiedHint((Component) e.getSource(), e);
                         }
@@ -187,12 +204,13 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
             panel.add(dl);
         }
 
+        installHoverVisibility(panel, actionSlot);
         return panel;
     }
 
     // ── Request section (Header / Cookie / Path / Query / Body) ──────────────
 
-    private static void addRequestSection(JPanel body, Request request, Operation op) {
+    private void addRequestSection(JPanel body, Request request, Operation op) {
         List<Parameter> header = request.getParametersIn(ParameterIn.HEADER);
         List<Parameter> cookie = request.getParametersIn(ParameterIn.COOKIE);
         List<Parameter> path   = request.getParametersIn(ParameterIn.PATH);
@@ -203,35 +221,46 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
 
         body.add(sectionDivider("Request"));
 
-        addParamGroup(body, "Header", header);
-        addParamGroup(body, "Cookie", cookie);
-        addParamGroup(body, "Path",   path);
-        addParamGroup(body, "Query",  query);
+        addParamGroup(body, "Header", header, null);
+        addParamGroup(body, "Cookie", cookie, null);
+        addParamGroup(body, "Path",   path, null);
+        addParamGroup(body, "Query",  query, generateModelTarget(querySchema(query), queryModelTypeName()));
 
         if (hasBody) {
             op.getRequestBody().getContent().forEach((contentType, mediaType) -> {
                 if (mediaType == null || mediaType.getSchema() == null) return;
-                body.add(groupContentTypeLabel("Body", contentType));
-                body.add(buildSchemaTree(mediaType.getSchema()));
+                body.add(buildHoverableSchemaSection(
+                        groupContentTypeLabel("Body", contentType, null),
+                        buildSchemaTree(mediaType.getSchema()),
+                        createSectionActions(OpenApiUtils.getExampleText(mediaType, contentType),
+                                generateModelTarget(mediaType.getSchema(), requestModelTypeName()))));
             });
         }
     }
 
-    private static void addParamGroup(JPanel body, String label, List<Parameter> params) {
+    private void addParamGroup(JPanel body, String label, List<Parameter> params, GenerateModelTarget target) {
         if (params.isEmpty()) return;
-        body.add(groupLabel(label));
+        List<JComponent> actions = target != null ? createSectionActions(null, target) : Collections.emptyList();
+        JPanel groupPanel = new JPanel();
+        groupPanel.setLayout(new BoxLayout(groupPanel, BoxLayout.Y_AXIS));
+        groupPanel.setAlignmentX(LEFT_ALIGNMENT);
+        groupPanel.setOpaque(false);
+        JComponent actionSlot = createHoverActionSlot(actions);
+        groupPanel.add(wrapTrailingAction(groupLabel(label), actionSlot));
         for (Parameter p : params) {
             boolean req = Boolean.TRUE.equals(p.getRequired());
             boolean dep = Boolean.TRUE.equals(p.getDeprecated());
-            body.add(buildRow(p.getName(), req, dep, paramType(p),
+            groupPanel.add(buildRow(p.getName(), req, dep, paramType(p),
                     OpenApiUtils.getParameterDescriptionMore(p), 0));
             if (p.getSchema() != null) {
                 List<?> enumValues = p.getSchema().getEnum();
                 if (enumValues != null && !enumValues.isEmpty()) {
-                    body.add(buildEnumRow(enumValues, 0));
+                    groupPanel.add(buildEnumRow(enumValues, 0));
                 }
             }
         }
+        installHoverVisibility(groupPanel, actionSlot);
+        body.add(groupPanel);
     }
 
     // ── Responses (tab per status code) ───────────────────────────────────────
@@ -239,24 +268,31 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
     /**
      * Adds the RESPONSES section and returns the JTabbedPane (multi-response) or null (single/none).
      */
-    private static void addResponsesSection(JPanel body,
-                                            List<Map.Entry<String, ApiResponse>> sorted) {
+    private void addResponsesSection(JPanel body,
+                                     List<Map.Entry<String, ApiResponse>> sorted) {
         if (sorted.isEmpty()) return;
 
         body.add(sectionDivider("Response"));
 
         if (sorted.size() == 1) {
-            // No tab bar for single response — show content-type inside the content panel
-            body.add(buildResponseContent(sorted.get(0).getValue(), true));
+            ApiResponse response = sorted.get(0).getValue();
+            if (response == null) return;
+            if (hasSingleRenderableResponseContent(response)) {
+                String ct = primaryContentType(response);
+                MediaType mt = primaryMediaType(response);
+                body.add(buildHoverableResponseSection(
+                        null,
+                        ct,
+                        buildResponseContent(response, false, sorted.get(0).getKey()),
+                        createSectionActions(OpenApiUtils.getExampleText(mt, ct),
+                                generateModelTarget(mt.getSchema(), responseModelTypeName(sorted.get(0).getKey())))));
+            } else {
+                body.add(buildResponseContent(response, true, sorted.get(0).getKey()));
+            }
             return;
         }
 
-        // ── Custom tab bar with trailing content-type label ──────────────
-        JPanel wrapper = new JPanel(new BorderLayout(0, 0));
-        wrapper.setAlignmentX(LEFT_ALIGNMENT);
-        wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
-        wrapper.setOpaque(false);
-
+        // ── Custom tab bar + response meta bar ───────────────────────────
         CardLayout cardLayout = new CardLayout();
         JPanel cardPanel = new JPanel(cardLayout);
         cardPanel.setOpaque(false);
@@ -264,17 +300,14 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
         JPanel tabButtonsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         tabButtonsPanel.setOpaque(false);
 
-        final JBLabel ctLabel = new JBLabel("");
-        ctLabel.setFont(new Font(Font.MONOSPACED, Font.PLAIN, JBUI.scaleFontSize(10f)));
-        Color infoFg = UIManager.getColor("Label.infoForeground");
-        if (infoFg == null) infoFg = UIManager.getColor("Label.disabledForeground");
-        ctLabel.setForeground(infoFg);
-        ctLabel.setBorder(JBUI.Borders.empty(0, 4, 0, 8));
-
-        JPanel tabBar = new JPanel(new BorderLayout(0, 0));
+        JPanel tabBar = new JPanel();
+        tabBar.setLayout(new BoxLayout(tabBar, BoxLayout.X_AXIS));
+        tabBar.setAlignmentX(LEFT_ALIGNMENT);
+        tabBar.setOpaque(false);
         tabBar.setBorder(JBUI.Borders.customLine(UIManager.getColor("Separator.separatorColor"), 0, 0, 1, 0));
-        tabBar.add(tabButtonsPanel, BorderLayout.WEST);
-        tabBar.add(ctLabel, BorderLayout.EAST);
+        tabBar.add(tabButtonsPanel);
+        tabBar.add(Box.createHorizontalGlue());
+        cardPanel.setAlignmentX(LEFT_ALIGNMENT);
 
         ButtonGroup bg = new ButtonGroup();
         boolean first = true;
@@ -284,17 +317,27 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
             if (response == null) continue;
 
             String ct = primaryContentType(response);
-            cardPanel.add(buildResponseContent(response, false), code);
+            MediaType mt = primaryMediaType(response);
+            boolean singleRenderableContent = hasSingleRenderableResponseContent(response);
+            JComponent responseContent = buildResponseContent(response, !singleRenderableContent, code);
 
             JToggleButton btn = new JToggleButton(code);
             styleResponseTabButton(btn, false);
             bg.add(btn);
 
             final String finalCt = ct;
+            final boolean hasResponseSchema = singleRenderableContent && mt != null && mt.getSchema() != null;
+            final String finalExample = hasResponseSchema ? OpenApiUtils.getExampleText(mt, ct) : null;
+            final GenerateModelTarget finalTarget = hasResponseSchema
+                    ? generateModelTarget(mt.getSchema(), responseModelTypeName(code))
+                    : null;
+            JComponent card = hasResponseSchema
+                    ? buildHoverableResponseSection(null, finalCt, responseContent,
+                    createSectionActions(finalExample, finalTarget))
+                    : responseContent;
+            cardPanel.add(card, code);
             btn.addActionListener(e -> {
                 cardLayout.show(cardPanel, code);
-                ctLabel.setText(finalCt != null ? finalCt : "");
-                ctLabel.setVisible(finalCt != null);
                 for (Component c : tabButtonsPanel.getComponents()) {
                     if (c instanceof JToggleButton)
                         styleResponseTabButton((JToggleButton) c, c == btn);
@@ -304,19 +347,15 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
             if (first) {
                 btn.setSelected(true);
                 styleResponseTabButton(btn, true);
-                ctLabel.setText(ct != null ? ct : "");
-                ctLabel.setVisible(ct != null);
                 first = false;
             }
             tabButtonsPanel.add(btn);
         }
-
-        wrapper.add(tabBar, BorderLayout.NORTH);
-        wrapper.add(cardPanel, BorderLayout.CENTER);
-        body.add(wrapper);
+        body.add(tabBar);
+        body.add(cardPanel);
     }
 
-    private static JPanel buildResponseContent(ApiResponse response, boolean showContentType) {
+    private JPanel buildResponseContent(ApiResponse response, boolean showContentType, String statusCode) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setAlignmentX(LEFT_ALIGNMENT);
@@ -327,10 +366,16 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
         if (hasContent) {
             response.getContent().forEach((ct, mt) -> {
                 if (mt != null && mt.getSchema() != null) {
+                    JComponent schemaTree = buildSchemaTree(mt.getSchema());
                     if (showContentType && !isWildcardContentType(ct)) {
-                        panel.add(contentTypeLabel(ct));
+                        panel.add(buildHoverableSchemaSection(
+                                contentTypeLabel(ct, null),
+                                schemaTree,
+                                createSectionActions(OpenApiUtils.getExampleText(mt, ct),
+                                        generateModelTarget(mt.getSchema(), responseModelTypeName(statusCode)))));
+                    } else {
+                        panel.add(schemaTree);
                     }
-                    panel.add(buildSchemaTree(mt.getSchema()));
                 }
             });
         } else {
@@ -345,6 +390,60 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
         }
         panel.add(Box.createVerticalGlue());
         return panel;
+    }
+
+    private static JPanel responseMetaBar(String contentType, JComponent trailingAction) {
+        JBLabel ctLabel = new JBLabel(contentType != null ? contentType : "");
+        ctLabel.setFont(new Font(Font.MONOSPACED, Font.PLAIN, JBUI.scaleFontSize(10f)));
+        Color infoFg = UIManager.getColor("Label.infoForeground");
+        if (infoFg == null) infoFg = UIManager.getColor("Label.disabledForeground");
+        ctLabel.setForeground(infoFg);
+        return responseMetaBar(ctLabel, trailingAction);
+    }
+
+    private static JPanel responseMetaBar(JComponent contentTypeLabel, JComponent trailingAction) {
+        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(8), 0));
+        bar.setAlignmentX(LEFT_ALIGNMENT);
+        bar.setOpaque(false);
+        bar.setBorder(JBUI.Borders.empty(6, 0, 2, 0));
+        bar.add(contentTypeLabel);
+        bar.add(trailingAction);
+        Dimension preferred = bar.getPreferredSize();
+        bar.setMaximumSize(new Dimension(Integer.MAX_VALUE, preferred.height));
+        return bar;
+    }
+
+    private static JPanel buildHoverableResponseSection(JComponent reusableContentTypeLabel,
+                                                        String contentType,
+                                                        JComponent content,
+                                                        List<JComponent> actions) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setAlignmentX(LEFT_ALIGNMENT);
+        panel.setOpaque(false);
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+
+        JComponent actionSlot = createHoverActionSlot(actions);
+        JComponent contentTypeLabel = reusableContentTypeLabel != null ? reusableContentTypeLabel : createContentTypeMetaLabel(contentType);
+        if (contentTypeLabel instanceof JLabel) {
+            ((JLabel) contentTypeLabel).setText(contentType != null ? contentType : "");
+            contentTypeLabel.setVisible(contentType != null && !contentType.isEmpty());
+        }
+        panel.add(responseMetaBar(contentTypeLabel, actionSlot));
+        panel.add(content);
+
+        installHoverVisibility(panel, actionSlot);
+        return panel;
+    }
+
+    private static JBLabel createContentTypeMetaLabel(String contentType) {
+        JBLabel ctLabel = new JBLabel(contentType != null ? contentType : "");
+        ctLabel.setFont(new Font(Font.MONOSPACED, Font.PLAIN, JBUI.scaleFontSize(10f)));
+        Color infoFg = UIManager.getColor("Label.infoForeground");
+        if (infoFg == null) infoFg = UIManager.getColor("Label.disabledForeground");
+        ctLabel.setForeground(infoFg);
+        ctLabel.setBorder(JBUI.Borders.empty());
+        return ctLabel;
     }
 
     private static void styleResponseTabButton(JToggleButton btn, boolean selected) {
@@ -367,15 +466,385 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
 
     /** Returns the first non-wildcard content-type of a response, or null. */
     private static String primaryContentType(ApiResponse response) {
-        if (response.getContent() == null) return null;
-        for (String ct : response.getContent().keySet()) {
-            if (!isWildcardContentType(ct)) return ct;
+        Map.Entry<String, MediaType> entry = OpenApiUtils.getPreferredContentEntry(response != null ? response.getContent() : null);
+        return entry != null ? entry.getKey() : null;
+    }
+
+    private static MediaType primaryMediaType(ApiResponse response) {
+        Map.Entry<String, MediaType> entry = OpenApiUtils.getPreferredContentEntry(response != null ? response.getContent() : null);
+        return entry != null ? entry.getValue() : null;
+    }
+
+    private static boolean hasSingleRenderableResponseContent(ApiResponse response) {
+        return renderableResponseContentCount(response) == 1;
+    }
+
+    private static int renderableResponseContentCount(ApiResponse response) {
+        if (response == null || response.getContent() == null || response.getContent().isEmpty()) {
+            return 0;
         }
-        return null;
+        int count = 0;
+        for (MediaType mediaType : response.getContent().values()) {
+            if (mediaType != null && mediaType.getSchema() != null) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private static boolean isWildcardContentType(String ct) {
         return ct == null || ct.equals("*/*") || ct.endsWith("/*");
+    }
+
+    private static JComponent createActionLabel(String text, Consumer<MouseEvent> onClick) {
+        JBLabel label = new JBLabel(text);
+        Font baseFont = label.getFont().deriveFont(Font.PLAIN, JBUI.scaleFontSize(10f));
+        Map<TextAttribute, Object> underlineAttrs = new HashMap<>(baseFont.getAttributes());
+        underlineAttrs.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);
+        Font underlineFont = baseFont.deriveFont(underlineAttrs);
+        label.setFont(baseFont);
+        Color infoFg = UIManager.getColor("Label.infoForeground");
+        Color disabledFg = UIManager.getColor("Label.disabledForeground");
+        Color normalFg = UIManager.getColor("Label.foreground");
+        if (infoFg == null) infoFg = disabledFg;
+        if (infoFg == null) infoFg = normalFg;
+        if (normalFg == null) normalFg = infoFg;
+        final Color baseFg = blend(infoFg, normalFg, 0.18f);
+        final Color hoverFg = blend(infoFg, normalFg, 0.38f);
+        label.setForeground(baseFg);
+        label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        label.setBorder(JBUI.Borders.empty(0, 6, 0, 0));
+        label.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                label.setForeground(hoverFg);
+                label.setFont(underlineFont);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                label.setForeground(baseFg);
+                label.setFont(baseFont);
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                onClick.accept(e);
+            }
+        });
+        return label;
+    }
+
+    private static Color blend(Color a, Color b, float ratioToB) {
+        if (a == null) return b;
+        if (b == null) return a;
+        float clamped = Math.max(0f, Math.min(1f, ratioToB));
+        float ratioToA = 1f - clamped;
+        int r = Math.round(a.getRed() * ratioToA + b.getRed() * clamped);
+        int g = Math.round(a.getGreen() * ratioToA + b.getGreen() * clamped);
+        int bl = Math.round(a.getBlue() * ratioToA + b.getBlue() * clamped);
+        return new Color(r, g, bl);
+    }
+
+    private JComponent createHeaderGenerateCodeButton() {
+        HeaderIconButton button = new HeaderIconButton(Icons.CODE, "Generate Request Code");
+        button.addActionListener(e -> {
+            GenerateRequestDialog dialog = new GenerateRequestDialog(project, document, request);
+            dialog.show();
+        });
+        installHeaderButtonHoverBehavior(button, null);
+        return button;
+    }
+
+    private JComponent createHeaderCopyMarkdownButton() {
+        HeaderIconButton button = new HeaderIconButton(AllIcons.Actions.Copy, "Copy As Markdown");
+        button.addActionListener(e -> {
+            String text = new MarkdownGenerator().generate(request);
+            CopyPasteManager.getInstance().setContents(new StringSelection(text));
+            showCopiedHint(button);
+        });
+        installHeaderButtonHoverBehavior(button, null);
+        return button;
+    }
+
+    private static void installHeaderButtonHoverBehavior(HeaderIconButton button, Runnable onHover) {
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setHovered(false);
+            }
+        });
+        button.addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                button.setHovered(true);
+                if (onHover != null) {
+                    onHover.run();
+                }
+            }
+        });
+    }
+
+    private static JComponent createHoverActionSlot(List<JComponent> actions) {
+        return createHoverActionSlot(actions, JBUI.scale(8));
+    }
+
+    private static JComponent createHoverActionSlot(List<JComponent> actions, int hgap) {
+        JPanel slot = new JPanel(new CardLayout());
+        slot.setOpaque(false);
+
+        JPanel placeholder = new JPanel();
+        placeholder.setOpaque(false);
+
+        JComponent actionGroup = buildActionGroup(actions, hgap);
+        Dimension actionSize = actionGroup.getPreferredSize();
+        placeholder.setPreferredSize(actionSize);
+        placeholder.setMinimumSize(actionSize);
+        placeholder.setMaximumSize(actionSize);
+        slot.add(placeholder, "hidden");
+        slot.add(actionGroup, "shown");
+        ((CardLayout) slot.getLayout()).show(slot, "hidden");
+        slot.setPreferredSize(actionSize);
+        slot.setMinimumSize(actionSize);
+        slot.setMaximumSize(actionSize);
+        return slot;
+    }
+
+    private static JComponent buildActionGroup(List<JComponent> actions) {
+        return buildActionGroup(actions, JBUI.scale(8));
+    }
+
+    private static JComponent buildActionGroup(List<JComponent> actions, int hgap) {
+        JPanel group = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, 0));
+        group.setOpaque(false);
+        if (actions != null) {
+            for (JComponent action : actions) {
+                if (action != null) {
+                    group.add(action);
+                }
+            }
+        }
+        Dimension preferred = group.getPreferredSize();
+        group.setPreferredSize(preferred);
+        group.setMinimumSize(preferred);
+        group.setMaximumSize(preferred);
+        return group;
+    }
+
+    private static void updateHoverActionSlot(JComponent slot, List<JComponent> actions) {
+        slot.removeAll();
+        JPanel placeholder = new JPanel();
+        placeholder.setOpaque(false);
+        JComponent actionGroup = buildActionGroup(actions);
+        Dimension actionSize = actionGroup.getPreferredSize();
+        placeholder.setPreferredSize(actionSize);
+        placeholder.setMinimumSize(actionSize);
+        placeholder.setMaximumSize(actionSize);
+        slot.add(placeholder, "hidden");
+        slot.add(actionGroup, "shown");
+        ((CardLayout) slot.getLayout()).show(slot, "hidden");
+        slot.setPreferredSize(actionSize);
+        slot.setMinimumSize(actionSize);
+        slot.setMaximumSize(actionSize);
+        slot.revalidate();
+        slot.repaint();
+    }
+
+    private static JPanel buildHoverableSchemaSection(JComponent header, JComponent content, List<JComponent> actions) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setAlignmentX(LEFT_ALIGNMENT);
+        panel.setOpaque(false);
+
+        JComponent actionSlot = createHoverActionSlot(actions);
+        JPanel headerRow = wrapTrailingAction(header, actionSlot);
+        panel.add(headerRow);
+        panel.add(content);
+
+        installHoverVisibility(panel, actionSlot);
+        return panel;
+    }
+
+    private static JPanel wrapTrailingAction(JComponent content, JComponent trailingAction) {
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        row.setAlignmentX(LEFT_ALIGNMENT);
+        row.setOpaque(false);
+        row.setBorder(content instanceof JPanel ? ((JPanel) content).getBorder() : JBUI.Borders.empty());
+
+        if (content instanceof JPanel) {
+            ((JPanel) content).setBorder(JBUI.Borders.empty());
+        }
+        row.add(content);
+        if (trailingAction.getPreferredSize().width > 0) {
+            row.add(Box.createHorizontalStrut(JBUI.scale(8)));
+        }
+        row.add(trailingAction);
+        Dimension preferred = row.getPreferredSize();
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, preferred.height));
+        return row;
+    }
+
+    private List<JComponent> createSectionActions(String example, GenerateModelTarget target) {
+        List<JComponent> actions = new ArrayList<>();
+        if (example != null && !example.trim().isEmpty()) {
+            actions.add(createActionLabel("Copy Example", e -> {
+                if (!isLeftSingleClick(e)) return;
+                CopyPasteManager.getInstance().setContents(new StringSelection(example));
+                showCopiedHint((Component) e.getSource(), e);
+            }));
+        }
+        if (target != null && document != null && request != null) {
+            actions.add(createActionLabel("Generate Code", e -> {
+                GenerateModelDialog dialog = new GenerateModelDialog(project, document, request, target);
+                dialog.show();
+            }));
+        }
+        return actions;
+    }
+
+    private GenerateModelTarget generateModelTarget(Schema<?> schema, String defaultTypeName) {
+        if (schema == null) {
+            return null;
+        }
+        return GenerateModelTarget.customSchema(schema, defaultTypeName);
+    }
+
+    private String requestModelTypeName() {
+        String operationId = OpenApiUtils.getOrGenerateOperationId(request.getOperation(), request.getPath(), request.getMethod());
+        return NamedUtils.toPascalCase(operationId) + "Request";
+    }
+
+    private String queryModelTypeName() {
+        String operationId = OpenApiUtils.getOrGenerateOperationId(request.getOperation(), request.getPath(), request.getMethod());
+        return NamedUtils.toPascalCase(operationId) + "QueryRequest";
+    }
+
+    private String responseModelTypeName(String statusCode) {
+        String operationId = OpenApiUtils.getOrGenerateOperationId(request.getOperation(), request.getPath(), request.getMethod());
+        String suffix = (statusCode != null && !statusCode.isEmpty()) ? statusCode + " Response" : "Response";
+        return NamedUtils.toPascalCase(operationId + " " + suffix);
+    }
+
+    private static Schema<?> querySchema(List<Parameter> parameters) {
+        if (parameters == null || parameters.isEmpty()) {
+            return null;
+        }
+        ObjectSchema schema = new ObjectSchema();
+        Map<String, Schema> properties = new LinkedHashMap<>();
+        List<String> required = new ArrayList<>();
+        for (Parameter parameter : parameters) {
+            Schema<?> paramSchema = parameter.getSchema();
+            if (paramSchema == null || parameter.getName() == null || parameter.getName().isEmpty()) {
+                continue;
+            }
+            properties.put(parameter.getName(), paramSchema);
+            if (Boolean.TRUE.equals(parameter.getRequired())) {
+                required.add(parameter.getName());
+            }
+        }
+        if (properties.isEmpty()) {
+            return null;
+        }
+        schema.setProperties(properties);
+        if (!required.isEmpty()) {
+            schema.setRequired(required);
+        }
+        return schema;
+    }
+
+    private static void installHoverVisibility(JComponent hoverArea, JComponent actionSlot) {
+        installHoverVisibilityRecursive(hoverArea, hoverArea, actionSlot);
+    }
+
+    private static void installHoverVisibilityRecursive(Component component, JComponent hoverArea, JComponent actionSlot) {
+        MouseAdapter adapter = new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                setHoverActionVisible(actionSlot, true);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                Point point = SwingUtilities.convertPoint(component, e.getPoint(), hoverArea);
+                setHoverActionVisible(actionSlot, hoverArea.contains(point));
+            }
+        };
+        component.addMouseListener(adapter);
+        if (component instanceof Container) {
+            for (Component child : ((Container) component).getComponents()) {
+                installHoverVisibilityRecursive(child, hoverArea, actionSlot);
+            }
+        }
+    }
+
+    private static void setHoverActionVisible(JComponent actionSlot, boolean visible) {
+        if (!(actionSlot.getLayout() instanceof CardLayout)) {
+            return;
+        }
+        ((CardLayout) actionSlot.getLayout()).show(actionSlot, visible ? "shown" : "hidden");
+        actionSlot.repaint();
+    }
+
+    private static class HeaderIconButton extends JButton {
+
+        private boolean hovered = false;
+
+        private HeaderIconButton(Icon icon, String tooltip) {
+            super(icon);
+            setOpaque(false);
+            setContentAreaFilled(false);
+            setBorderPainted(false);
+            setFocusable(false);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setMargin(JBUI.emptyInsets());
+            setBorder(JBUI.Borders.empty());
+            setToolTipText(tooltip);
+        }
+
+        private void setHovered(boolean hovered) {
+            this.hovered = hovered;
+            repaint();
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            Icon icon = getIcon();
+            int iconWidth = icon != null ? icon.getIconWidth() : JBUI.scale(16);
+            int iconHeight = icon != null ? icon.getIconHeight() : JBUI.scale(16);
+            return new Dimension(iconWidth + JBUI.scale(10), iconHeight + JBUI.scale(10));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            try {
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
+
+                int w = getWidth();
+                int h = getHeight();
+                boolean active = hovered || getModel().isPressed();
+
+                if (active) {
+                    Color background = UIManager.getColor("ActionButton.hoverBackground");
+                    if (background == null) background = UIManager.getColor("Button.select");
+                    if (background != null) {
+                        Shape shape = new RoundRectangle2D.Float(0.5f, 0.5f, w - 1f, h - 1f, JBUI.scale(8), JBUI.scale(8));
+                        g2.setColor(background);
+                        g2.fill(shape);
+                    }
+                }
+
+                Icon icon = getIcon();
+                if (icon != null) {
+                    int x = (w - icon.getIconWidth()) / 2;
+                    int y = (h - icon.getIconHeight()) / 2;
+                    icon.paintIcon(this, g2, x, y);
+                }
+            } finally {
+                g2.dispose();
+            }
+        }
     }
 
     // ── Field tree ────────────────────────────────────────────────────────────
@@ -435,6 +904,7 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
             }
             @Override
             public void mouseClicked(MouseEvent e) {
+                if (!isLeftSingleClick(e)) return;
                 TreePath path = tree.getPathForLocation(e.getX(), e.getY());
                 if (path == null) return;
                 Object node = path.getLastPathComponent();
@@ -611,7 +1081,6 @@ private static JPanel baseRow(int depth) {
         p.setAlignmentX(LEFT_ALIGNMENT);
         p.setOpaque(false);
         p.setBorder(JBUI.Borders.empty(6, 0, 3, 0));
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(24)));
 
         JBLabel l = new JBLabel(text);
         l.setFont(l.getFont().deriveFont(Font.ITALIC, l.getFont().getSize() - 1f));
@@ -619,18 +1088,19 @@ private static JPanel baseRow(int depth) {
         if (fg == null) fg = UIManager.getColor("Label.disabledForeground");
         l.setForeground(fg);
         p.add(l);
-        p.add(Box.createHorizontalGlue());
+        Dimension preferred = p.getPreferredSize();
+        p.setMaximumSize(preferred);
+        p.setMinimumSize(preferred);
         return p;
     }
 
     /** Combined "Body  application/json" label on a single row. */
-    private static JPanel groupContentTypeLabel(String group, String contentType) {
+    private static JPanel groupContentTypeLabel(String group, String contentType, JComponent trailingAction) {
         JPanel p = new JPanel();
         p.setLayout(new BoxLayout(p, BoxLayout.X_AXIS));
         p.setAlignmentX(LEFT_ALIGNMENT);
         p.setOpaque(false);
         p.setBorder(JBUI.Borders.empty(6, 0, 3, 0));
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(24)));
 
         Color fg = UIManager.getColor("Label.infoForeground");
         if (fg == null) fg = UIManager.getColor("Label.disabledForeground");
@@ -645,18 +1115,23 @@ private static JPanel baseRow(int depth) {
 
         p.add(groupLbl);
         p.add(ctLbl);
-        p.add(Box.createHorizontalGlue());
+        if (trailingAction != null) {
+            p.add(Box.createHorizontalStrut(JBUI.scale(8)));
+            p.add(trailingAction);
+        }
+        Dimension preferred = p.getPreferredSize();
+        p.setMaximumSize(preferred);
+        p.setMinimumSize(preferred);
         return p;
     }
 
     /** Content-type sub-label under Body group (e.g. "application/json"). */
-    private static JPanel contentTypeLabel(String contentType) {
+    private static JPanel contentTypeLabel(String contentType, JComponent trailingAction) {
         JPanel p = new JPanel();
         p.setLayout(new BoxLayout(p, BoxLayout.X_AXIS));
         p.setAlignmentX(LEFT_ALIGNMENT);
         p.setOpaque(false);
         p.setBorder(JBUI.Borders.empty(3, 0, 2, 0));
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(20)));
 
         JBLabel l = new JBLabel(contentType);
         l.setFont(new Font(Font.MONOSPACED, Font.PLAIN, JBUI.scaleFontSize(11f)));
@@ -664,7 +1139,13 @@ private static JPanel baseRow(int depth) {
         if (fg == null) fg = UIManager.getColor("Label.disabledForeground");
         l.setForeground(fg);
         p.add(l);
-        p.add(Box.createHorizontalGlue());
+        if (trailingAction != null) {
+            p.add(Box.createHorizontalStrut(JBUI.scale(8)));
+            p.add(trailingAction);
+        }
+        Dimension preferred = p.getPreferredSize();
+        p.setMaximumSize(preferred);
+        p.setMinimumSize(preferred);
         return p;
     }
 
@@ -716,6 +1197,7 @@ private static JPanel baseRow(int depth) {
             }
             @Override
             public void mouseClicked(MouseEvent e) {
+                if (!isLeftSingleClick(e)) return;
                 CopyPasteManager.getInstance().setContents(new StringSelection(rawName));
                 showCopiedHint(label, e);
             }
@@ -756,8 +1238,25 @@ private static JPanel baseRow(int depth) {
         }
     }
 
-    /** Shows a lightweight "Copied!" tooltip near the cursor, auto-dismissed after 1.2s. */
+    private static boolean isLeftSingleClick(MouseEvent e) {
+        return SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 1;
+    }
+
+    /** Shows a lightweight "Copied!" tooltip near the cursor, auto-dismissed after 450ms. */
     private static void showCopiedHint(Component near, MouseEvent e) {
+        Point p = e.getLocationOnScreen();
+        showCopiedHintAt(near, p.x + 6, p.y - 6);
+    }
+
+    private static void showCopiedHint(Component near) {
+        try {
+            Point p = near.getLocationOnScreen();
+            showCopiedHintAt(near, p.x + near.getWidth() / 2, p.y);
+        } catch (IllegalComponentStateException ignored) {
+        }
+    }
+
+    private static void showCopiedHintAt(Component near, int anchorX, int anchorY) {
         Window owner = SwingUtilities.getWindowAncestor(near);
         JWindow hint = new JWindow(owner);
         boolean bright = JBColor.isBright();
@@ -795,11 +1294,10 @@ private static JPanel baseRow(int depth) {
         hint.setShape(new RoundRectangle2D.Double(
                 0, 0, hint.getWidth(), hint.getHeight(), JBUI.scale(10), JBUI.scale(10)));
 
-        Point p = e.getLocationOnScreen();
-        hint.setLocation(p.x + 6, p.y - hint.getHeight() - 6);
+        hint.setLocation(anchorX - hint.getWidth() / 2, anchorY - hint.getHeight() - 6);
         hint.setVisible(true);
 
-        javax.swing.Timer t = new javax.swing.Timer(1200, ev -> hint.dispose());
+        javax.swing.Timer t = new javax.swing.Timer(450, ev -> hint.dispose());
         t.setRepeats(false);
         t.start();
     }
