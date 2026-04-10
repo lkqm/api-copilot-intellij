@@ -32,6 +32,11 @@ public class Document {
     private boolean autoSyncEnabled;
 
     /**
+     * 是否导出到项目目录 .apis/
+     */
+    private boolean exportEnabled;
+
+    /**
      * 文档内容
      */
     @Tag("content")
@@ -79,6 +84,16 @@ public class Document {
     private String lastFailMessage;
 
     /**
+     * 最后导出成功时间
+     */
+    private Long exportLastSuccessTime;
+
+    /**
+     * 最后导出失败消息
+     */
+    private String exportLastFailMessage;
+
+    /**
      * 是否有远程更新
      */
     private boolean hasUpdate;
@@ -112,6 +127,7 @@ public class Document {
         copy.setApifoxConfig(this.apifoxConfig);
         copy.setSwaggerHubConfig(this.swaggerHubConfig);
         copy.setAutoSyncEnabled(this.autoSyncEnabled);
+        copy.setExportEnabled(this.exportEnabled);
         // id is null so save() will generate a new UUID
         return copy;
     }

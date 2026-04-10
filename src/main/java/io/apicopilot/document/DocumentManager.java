@@ -87,6 +87,9 @@ public class DocumentManager {
             document.setLastFailMessage(resolveResult.getFailReason());
         }
         DocumentRepository.getInstance(this.project).save(document);
+        if (resolveResult.isSuccess()) {
+            DocumentExportService.getInstance(project).export(document);
+        }
 
         return LoadResult.builder()
                 .success(resolveResult.isSuccess())

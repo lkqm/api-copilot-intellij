@@ -25,6 +25,7 @@ public class SwaggerHubDocumentEditForm implements DocumentEditForm {
     private JTextField apiField;
     private JTextField versionField;
     private JCheckBox autoSyncEnabledCheckBox;
+    private JCheckBox exportEnabledCheckBox;
     private JLabel autoSyncHintLabel;
     private Document document;
 
@@ -41,6 +42,7 @@ public class SwaggerHubDocumentEditForm implements DocumentEditForm {
             versionField.setText(swaggerHubConfig.getVersion());
         }
         autoSyncEnabledCheckBox.setSelected(data.isAutoSyncEnabled());
+        exportEnabledCheckBox.setSelected(data.isExportEnabled());
     }
 
     @Override
@@ -66,6 +68,7 @@ public class SwaggerHubDocumentEditForm implements DocumentEditForm {
         swaggerHubConfig.setApi(apiField.getText().trim());
         swaggerHubConfig.setVersion(versionField.getText().trim());
         data.setAutoSyncEnabled(document == null || autoSyncEnabledCheckBox.isSelected());
+        data.setExportEnabled(exportEnabledCheckBox.isSelected());
 
         return data;
     }

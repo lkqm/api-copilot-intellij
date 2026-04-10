@@ -42,8 +42,6 @@ import java.util.stream.Collectors;
  */
 public class ApiViewPanel extends SimpleToolWindowPanel implements Disposable {
 
-    private static final int LEFT_PANEL_MIN_WIDTH = 170;
-
     private final Project project;
     @Getter
     private final ApiViewTreePane treePane;
@@ -61,10 +59,11 @@ public class ApiViewPanel extends SimpleToolWindowPanel implements Disposable {
         this.previewState = PreviewState.HIDDEN;
         this.treePane = new ApiViewTreePane(project);
         JPanel leftPanel = new JPanel(new BorderLayout());
-        leftPanel.setMinimumSize(new Dimension(LEFT_PANEL_MIN_WIDTH, 0));
+        leftPanel.setMinimumSize(new Dimension(0, 0));
         leftPanel.add(createToolbar(), BorderLayout.NORTH);
         leftPanel.add(treePane, BorderLayout.CENTER);
         this.splitter = new JBSplitter(false, "ApiViewPanelSplitter", 1);
+        this.splitter.setHonorComponentsMinimumSize(false);
         this.splitter.setFirstComponent(leftPanel);
         this.splitter.addPropertyChangeListener(Splitter.PROP_PROPORTION, event -> {
             if (previewState != PreviewState.HIDDEN && splitter.getSecondComponent() != null) {
@@ -119,7 +118,9 @@ public class ApiViewPanel extends SimpleToolWindowPanel implements Disposable {
 
     /** Single-click: open preview tab (shows right pane if hidden). */
     private void openPreview(Document document, Request request) {
-        ensureRightPaneVisible();
+        if (previewState == PreviewState.HIDDEN) {
+            return;
+        }
         tabPane.previewOrFocus(document, request);
     }
 

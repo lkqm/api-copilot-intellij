@@ -23,6 +23,7 @@ public class OpenApiDocumentEditForm implements DocumentEditForm {
     private JPanel panel;
     private JTextField nameField;
     private JCheckBox autoSyncEnabledCheckBox;
+    private JCheckBox exportEnabledCheckBox;
     private JLabel autoSyncHintLabel;
     private Document document;
 
@@ -55,6 +56,7 @@ public class OpenApiDocumentEditForm implements DocumentEditForm {
             openApiFileField.setText(config.getPath());
         }
         autoSyncEnabledCheckBox.setSelected(data.isAutoSyncEnabled());
+        exportEnabledCheckBox.setSelected(data.isExportEnabled());
         updateAutoSyncVisibility();
     }
 
@@ -81,6 +83,7 @@ public class OpenApiDocumentEditForm implements DocumentEditForm {
         } else {
             data.setAutoSyncEnabled(autoSyncEnabledCheckBox.isSelected());
         }
+        data.setExportEnabled(exportEnabledCheckBox.isSelected());
         return data;
     }
 

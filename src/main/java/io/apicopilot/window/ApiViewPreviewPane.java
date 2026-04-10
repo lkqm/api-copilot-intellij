@@ -384,7 +384,22 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
         DefaultMutableTreeNode root = new DefaultMutableTreeNode(null);
         addSchemaNodes(root, schema);
 
-        Tree tree = new Tree(new DefaultTreeModel(root));
+        Tree tree = new Tree(new DefaultTreeModel(root)) {
+            @Override
+            public boolean getScrollableTracksViewportWidth() {
+                return true;
+            }
+
+            @Override
+            public Dimension getPreferredSize() {
+                Dimension preferred = super.getPreferredSize();
+                Container parent = getParent();
+                if (parent instanceof JViewport) {
+                    preferred.width = Math.max(preferred.width, parent.getWidth());
+                }
+                return preferred;
+            }
+        };
         tree.setRootVisible(false);
         tree.setShowsRootHandles(true);
         tree.setRowHeight(-1);

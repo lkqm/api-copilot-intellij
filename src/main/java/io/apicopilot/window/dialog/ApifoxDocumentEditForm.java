@@ -23,6 +23,7 @@ public class ApifoxDocumentEditForm implements DocumentEditForm {
     private JTextField accessTokenField;
     private JTextField projectIdField;
     private JCheckBox autoSyncEnabledCheckBox;
+    private JCheckBox exportEnabledCheckBox;
     private JLabel autoSyncHintLabel;
     private Document document;
 
@@ -37,6 +38,7 @@ public class ApifoxDocumentEditForm implements DocumentEditForm {
             projectIdField.setText(apifoxConfig.getProjectId());
         }
         autoSyncEnabledCheckBox.setSelected(data.isAutoSyncEnabled());
+        exportEnabledCheckBox.setSelected(data.isExportEnabled());
     }
 
     @Override
@@ -60,6 +62,7 @@ public class ApifoxDocumentEditForm implements DocumentEditForm {
         apifoxConfig.setAccessToken(accessTokenField.getText().trim());
         apifoxConfig.setProjectId(projectIdField.getText().trim());
         data.setAutoSyncEnabled(document == null || autoSyncEnabledCheckBox.isSelected());
+        data.setExportEnabled(exportEnabledCheckBox.isSelected());
 
         return data;
     }
