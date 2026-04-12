@@ -11,7 +11,7 @@ plugins {
 }
 
 group 'com.github.jetplugins'
-version '0.5.0'
+version '0.6.0'
 java.sourceCompatibility = 1.8
 java.targetCompatibility = 1.8
 compileJava.options.encoding = "UTF-8"
@@ -53,8 +53,9 @@ intellij {
 }
 patchPluginXml {
     changeNotes = """
-        feat: supports debug
-        feat: support response wrapper handling in code generation
+        feat: support document keep up to date
+        feat: support sync api doc to project dir
+        optimize: ui
     """
 }
 
