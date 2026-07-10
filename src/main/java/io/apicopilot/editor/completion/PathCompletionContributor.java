@@ -9,6 +9,7 @@ import com.intellij.util.ProcessingContext;
 import io.apicopilot.document.Document;
 import io.apicopilot.document.DocumentManager;
 import io.apicopilot.util.PathUtils;
+import io.swagger.v3.oas.models.OpenAPI;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -56,7 +57,17 @@ public class PathCompletionContributor extends CompletionContributor {
             List<Document> documents = documentManager.getDocuments();
             List<LookupElementBuilder> elements = new ArrayList<>();
             documents.forEach(document -> {
-                document.getOpenApi().getPaths().forEach((path, pathItem) -> {
+                if (document == null) {
+                    return;
+                }
+                OpenAPI openApi = document.getOpenApi();
+                if (openApi == null || openApi.getPaths() == null) {
+                    return;
+                }
+                openApi.getPaths().forEach((path, pathItem) -> {
+                    if (pathItem == null) {
+                        return;
+                    }
                     pathItem.readOperationsMap().forEach((method, operation) -> {
                         elements.add(LookupElementBuilder
                                 .create(path)
