@@ -2,18 +2,25 @@ package io.apicopilot.window.debug;
 
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.fileChooser.FileChooserFactory;
+import com.intellij.openapi.fileChooser.FileSaverDescriptor;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vfs.VirtualFileWrapper;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextArea;
+import com.intellij.util.ui.JBEmptyBorder;
 import com.intellij.util.ui.JBUI;
 import io.apicopilot.codegen.ui.CodeEditorPanel;
 import io.apicopilot.debug.DebugHttpClient;
 import io.apicopilot.debug.DebugHttpResponse;
+import io.apicopilot.util.NotificationUtils;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import java.nio.file.Files;
 
 /**
  * Apifox-style response panel.
@@ -39,7 +46,10 @@ public class ResponsePanel extends JPanel implements Disposable {
     private static final String CARD_LOADING = "loading";
     private static final String CARD_PRETTY  = "pretty";
     private static final String CARD_RAW     = "raw";
+    private static final String CARD_BINARY  = "binary";
     private static final String CARD_ERROR   = "error";
+
+    private final Project project;
 
     // Tab bar status widgets
     private final JLabel statusBadge = new JBLabel();
@@ -47,6 +57,7 @@ public class ResponsePanel extends JPanel implements Disposable {
     private final JLabel sizeLabel   = new JBLabel();
     private final JLabel dotTime     = new JBLabel("·");
     private final JLabel dotSize     = new JBLabel("·");
+    private final JButton binaryDownloadBtn = new JButton(AllIcons.Actions.Download);
 
     // Custom tab buttons
     private final JToggleButton bodyTabBtn    = new JToggleButton("Body");
@@ -67,6 +78,8 @@ public class ResponsePanel extends JPanel implements Disposable {
     private final JPanel bodyCardPanel = new JPanel(bodyCardLayout);
     private final CodeEditorPanel prettyEditor;
     private final JBTextArea rawTextArea = new JBTextArea();
+    private final JLabel binaryTitleLabel = new JBLabel();
+    private final JLabel binaryMetaLabel = new JBLabel();
     private final JLabel errorLabel = new JBLabel();
 
     // Other tabs
@@ -76,6 +89,7 @@ public class ResponsePanel extends JPanel implements Disposable {
     private String cachedRawBody = "";
     private String cachedFormattedBody = "";
     private boolean cachedIsJson = false;
+    private DebugHttpResponse cachedBinaryResponse;
 
     // Collapse toggle
     private JButton collapseBtn;
@@ -83,6 +97,7 @@ public class ResponsePanel extends JPanel implements Disposable {
 
     public ResponsePanel(Project project) {
         super(new BorderLayout());
+        this.project = project;
 
         prettyEditor = new CodeEditorPanel(project, true);
 
@@ -124,10 +139,13 @@ public class ResponsePanel extends JPanel implements Disposable {
         JBScrollPane rawScroll = new JBScrollPane(rawTextArea);
         rawScroll.setBorder(JBUI.Borders.empty());
 
+        JPanel binaryPanel = buildBinaryPanel();
+
         bodyCardPanel.add(idleLabel, CARD_IDLE);
         bodyCardPanel.add(loadingLabel, CARD_LOADING);
         bodyCardPanel.add(prettyEditor, CARD_PRETTY);
         bodyCardPanel.add(rawScroll, CARD_RAW);
+        bodyCardPanel.add(binaryPanel, CARD_BINARY);
         bodyCardPanel.add(errorLabel, CARD_ERROR);
 
         // ── Body tab ──────────────────────────────────────────────────────
@@ -188,14 +206,18 @@ public class ResponsePanel extends JPanel implements Disposable {
 
     public void showIdle() {
         setStatusVisible(false);
+        binaryDownloadBtn.setVisible(false);
         bodyToolbar.setVisible(false);
+        cachedBinaryResponse = null;
         bodyCardLayout.show(bodyCardPanel, CARD_IDLE);
         headersPanel.clear();
     }
 
     public void showLoading() {
         setStatusVisible(false);
+        binaryDownloadBtn.setVisible(false);
         bodyToolbar.setVisible(false);
+        cachedBinaryResponse = null;
         bodyCardLayout.show(bodyCardPanel, CARD_LOADING);
     }
 
@@ -212,14 +234,20 @@ public class ResponsePanel extends JPanel implements Disposable {
         sizeLabel.setText(response.getSizeText());
         setStatusVisible(true);
 
-        // Cache body data
+        headersPanel.setHeaders(response.getHeaders());
+
+        if (response.isBinary()) {
+            showBinaryResponse(response);
+            return;
+        }
+
         cachedRawBody       = response.getBody() != null ? response.getBody() : "";
         cachedIsJson        = response.isJsonResponse();
         cachedFormattedBody = cachedIsJson
                 ? DebugHttpClient.formatJson(cachedRawBody)
                 : cachedRawBody;
-
-        headersPanel.setHeaders(response.getHeaders());
+        cachedBinaryResponse = null;
+        binaryDownloadBtn.setVisible(false);
 
         // Apply current pretty/raw toggle
         bodyToolbar.setVisible(true);
@@ -229,7 +257,9 @@ public class ResponsePanel extends JPanel implements Disposable {
 
     public void showError(String message) {
         setStatusVisible(false);
+        binaryDownloadBtn.setVisible(false);
         bodyToolbar.setVisible(false);
+        cachedBinaryResponse = null;
         errorLabel.setText("<html><center>Request Failed<br/><small>" +
                 (message != null ? message : "Unknown error") + "</small></center></html>");
         bodyCardLayout.show(bodyCardPanel, CARD_ERROR);
@@ -252,6 +282,70 @@ public class ResponsePanel extends JPanel implements Disposable {
         rawTextArea.setText(cachedRawBody);
         rawTextArea.setCaretPosition(0);
         bodyCardLayout.show(bodyCardPanel, CARD_RAW);
+    }
+
+    private JPanel buildBinaryPanel() {
+        binaryTitleLabel.setFont(binaryTitleLabel.getFont().deriveFont(13f));
+        binaryTitleLabel.setForeground(UIManager.getColor("Label.disabledForeground"));
+        binaryTitleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        binaryMetaLabel.setForeground(UIManager.getColor("Label.disabledForeground"));
+        binaryMetaLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        JPanel content = new JPanel();
+        content.setOpaque(false);
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+
+        binaryTitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        binaryMetaLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        binaryDownloadBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        content.add(Box.createVerticalGlue());
+        content.add(binaryTitleLabel);
+        content.add(Box.createVerticalStrut(JBUI.scale(8)));
+        content.add(binaryMetaLabel);
+        content.add(Box.createVerticalGlue());
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(JBUI.Borders.empty(16));
+        panel.add(content, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private void showBinaryResponse(DebugHttpResponse response) {
+        cachedBinaryResponse = response;
+        bodyToolbar.setVisible(false);
+        binaryDownloadBtn.setVisible(true);
+
+        String fileName = response.getFileName();
+        binaryTitleLabel.setText(fileName != null && !fileName.isEmpty() ? fileName : "Binary response");
+        binaryMetaLabel.setText("");
+        binaryMetaLabel.setVisible(false);
+        bodyCardLayout.show(bodyCardPanel, CARD_BINARY);
+    }
+
+    private void downloadBinaryResponse() {
+        DebugHttpResponse response = cachedBinaryResponse;
+        if (response == null || response.getBodyBytes() == null) {
+            return;
+        }
+
+        String fileName = response.getDownloadFileName() != null && !response.getDownloadFileName().isEmpty()
+                ? response.getDownloadFileName()
+                : "response.bin";
+        FileSaverDescriptor descriptor = new FileSaverDescriptor("Save Response", "Save response body");
+        VirtualFileWrapper wrapper = FileChooserFactory.getInstance()
+                .createSaveFileDialog(descriptor, project)
+                .save(fileName);
+        if (wrapper == null || wrapper.getFile() == null) {
+            return;
+        }
+
+        try {
+            Files.write(wrapper.getFile().toPath(), response.getBodyBytes());
+        } catch (IOException e) {
+            NotificationUtils.notifyError("Save response failed", e.getMessage());
+        }
     }
 
     private void setStatusVisible(boolean visible) {
@@ -312,13 +406,26 @@ public class ResponsePanel extends JPanel implements Disposable {
         dotSize.setForeground(UIManager.getColor("Label.disabledForeground"));
         dotSize.setFont(dotSize.getFont().deriveFont(11f));
 
-        JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        binaryDownloadBtn.setFocusable(false);
+        binaryDownloadBtn.setBorderPainted(false);
+        binaryDownloadBtn.setContentAreaFilled(false);
+        binaryDownloadBtn.setMargin(JBUI.emptyInsets());
+        binaryDownloadBtn.setBorder(new JBEmptyBorder(1, 4, 1, 0));
+        Dimension downloadButtonSize = JBUI.size(20, 20);
+        binaryDownloadBtn.setPreferredSize(downloadButtonSize);
+        binaryDownloadBtn.setMinimumSize(downloadButtonSize);
+        binaryDownloadBtn.setMaximumSize(downloadButtonSize);
+        binaryDownloadBtn.setVisible(false);
+        binaryDownloadBtn.addActionListener(e -> downloadBinaryResponse());
+
+        JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
         statusPanel.setOpaque(false);
         statusPanel.add(statusBadge);
         statusPanel.add(dotTime);
         statusPanel.add(timeLabel);
         statusPanel.add(dotSize);
         statusPanel.add(sizeLabel);
+        statusPanel.add(binaryDownloadBtn);
 
         JPanel tabButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         tabButtons.setOpaque(false);

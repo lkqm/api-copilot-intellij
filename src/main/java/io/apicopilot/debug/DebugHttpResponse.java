@@ -13,6 +13,11 @@ public class DebugHttpResponse {
     private int statusCode;
     private Map<String, String> headers;
     private String body;
+    private byte[] bodyBytes;
+    private boolean binary;
+    private String contentType;
+    private String fileName;
+    private String downloadFileName;
     private long timeMs;
     private long sizeBytes;
     private String errorMessage;
@@ -39,9 +44,18 @@ public class DebugHttpResponse {
     }
 
     public boolean isJsonResponse() {
-        if (headers == null) return false;
-        String ct = headers.getOrDefault("content-type", "");
+        String ct = getHeader("Content-Type");
         return ct.contains("application/json") || ct.contains("text/json");
+    }
+
+    public String getHeader(String name) {
+        if (headers == null || name == null) return "";
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            if (name.equalsIgnoreCase(entry.getKey())) {
+                return entry.getValue() != null ? entry.getValue() : "";
+            }
+        }
+        return "";
     }
 
     private static String getHttpStatusReason(int code) {

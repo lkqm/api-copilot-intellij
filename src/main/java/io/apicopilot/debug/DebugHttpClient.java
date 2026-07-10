@@ -5,14 +5,18 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 import java.net.URI;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -68,7 +72,20 @@ public class DebugHttpClient {
 
             byte[] bytes = httpResponse.body();
             response.setSizeBytes(bytes.length);
-            response.setBody(new String(bytes, StandardCharsets.UTF_8));
+            response.setBodyBytes(bytes);
+
+            String contentType = getHeader(headers, "Content-Type");
+            String contentDisposition = getHeader(headers, "Content-Disposition");
+            response.setContentType(contentType);
+            String fileName = fileNameFromContentDisposition(contentDisposition);
+            response.setFileName(fileName);
+            response.setDownloadFileName(!fileName.isEmpty() ? fileName : defaultFileName(contentType));
+
+            boolean binary = isBinaryResponse(contentType, contentDisposition);
+            response.setBinary(binary);
+            if (!binary) {
+                response.setBody(new String(bytes, StandardCharsets.UTF_8));
+            }
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -111,6 +128,124 @@ public class DebugHttpClient {
         }
 
         return CLIENT.send(builder.build(), HttpResponse.BodyHandlers.ofByteArray());
+    }
+
+    private static String getHeader(Map<String, String> headers, String name) {
+        if (headers == null || name == null) return "";
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            if (name.equalsIgnoreCase(entry.getKey())) {
+                return entry.getValue() != null ? entry.getValue() : "";
+            }
+        }
+        return "";
+    }
+
+    private static boolean isBinaryResponse(String contentType, String contentDisposition) {
+        String disposition = contentDisposition != null ? contentDisposition.toLowerCase(Locale.ROOT) : "";
+        if (disposition.contains("attachment")) {
+            return true;
+        }
+
+        String mediaType = getMediaType(contentType);
+        if (mediaType.isEmpty()) {
+            return false;
+        }
+        if (mediaType.startsWith("text/")) {
+            return false;
+        }
+        if (mediaType.contains("json")
+                || mediaType.contains("xml")
+                || mediaType.equals("application/javascript")
+                || mediaType.equals("application/x-www-form-urlencoded")) {
+            return false;
+        }
+        return mediaType.startsWith("image/")
+                || mediaType.equals("application/octet-stream")
+                || mediaType.equals("application/pdf")
+                || mediaType.equals("application/zip")
+                || mediaType.equals("application/x-zip-compressed")
+                || mediaType.equals("application/vnd.ms-excel")
+                || mediaType.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                || mediaType.equals("application/msword")
+                || mediaType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    }
+
+    private static String fileNameFromContentDisposition(String contentDisposition) {
+        if (contentDisposition == null || contentDisposition.isEmpty()) {
+            return "";
+        }
+
+        Matcher encodedMatcher = Pattern.compile("(?i)(?:^|;)\\s*filename\\*=([^;]+)").matcher(contentDisposition);
+        if (encodedMatcher.find()) {
+            String decoded = decodeRfc5987FileName(stripQuotes(encodedMatcher.group(1).trim()));
+            if (!decoded.isEmpty()) {
+                return sanitizeFileName(decoded);
+            }
+        }
+
+        Matcher matcher = Pattern.compile("(?i)(?:^|;)\\s*filename=([^;]+)").matcher(contentDisposition);
+        if (!matcher.find()) {
+            return "";
+        }
+        return sanitizeFileName(stripQuotes(matcher.group(1).trim()));
+    }
+
+    private static String decodeRfc5987FileName(String value) {
+        int charsetSeparator = value.indexOf("''");
+        if (charsetSeparator <= 0 || charsetSeparator + 2 >= value.length()) {
+            return value;
+        }
+
+        String charsetName = value.substring(0, charsetSeparator);
+        String encodedFileName = value.substring(charsetSeparator + 2);
+        try {
+            return URLDecoder.decode(encodedFileName, Charset.forName(charsetName).name());
+        } catch (Exception ignored) {
+            return encodedFileName;
+        }
+    }
+
+    private static String stripQuotes(String value) {
+        if (value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")) {
+            return value.substring(1, value.length() - 1);
+        }
+        return value;
+    }
+
+    private static String sanitizeFileName(String value) {
+        return value.replace('\\', '_').replace('/', '_');
+    }
+
+    private static String defaultFileName(String contentType) {
+        return "response" + extensionForContentType(contentType);
+    }
+
+    private static String extensionForContentType(String contentType) {
+        String mediaType = getMediaType(contentType);
+        switch (mediaType) {
+            case "application/pdf": return ".pdf";
+            case "image/png": return ".png";
+            case "image/jpeg": return ".jpg";
+            case "image/gif": return ".gif";
+            case "application/zip":
+            case "application/x-zip-compressed": return ".zip";
+            case "application/vnd.ms-excel": return ".xls";
+            case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": return ".xlsx";
+            case "application/msword": return ".doc";
+            case "application/vnd.openxmlformats-officedocument.wordprocessingml.document": return ".docx";
+            default: return ".bin";
+        }
+    }
+
+    private static String getMediaType(String contentType) {
+        if (contentType == null) {
+            return "";
+        }
+        return Arrays.stream(contentType.split(";"))
+                .findFirst()
+                .orElse("")
+                .trim()
+                .toLowerCase(Locale.ROOT);
     }
 
     // ── URL builder ───────────────────────────────────────────────────────
