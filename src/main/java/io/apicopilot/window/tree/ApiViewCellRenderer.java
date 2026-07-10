@@ -49,7 +49,7 @@ public class ApiViewCellRenderer extends ColoredTreeCellRenderer {
             if (!loading && selected && document.getLastSuccessTime() != null) {
                 Instant loadTime = Instant.ofEpochMilli(document.getLastSuccessTime());
                 String time = TimeFormatUtils.formatRelativeTime(loadTime);
-                append(" · " + time, SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES);
+                append(" · Synced " + time, SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES);
             }
 
             if (!loading && syncStatus == SyncStatus.FAILED) {

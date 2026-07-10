@@ -5,11 +5,8 @@ import java.time.format.DateTimeFormatter;
 
 public class TimeFormatUtils {
 
-    private static final DateTimeFormatter MONTH_DAY =
-            DateTimeFormatter.ofPattern("MMM d");           // Apr 3
-
-    private static final DateTimeFormatter MONTH_DAY_YEAR =
-            DateTimeFormatter.ofPattern("MMM d, yyyy");     // Apr 3, 2025
+    private static final DateTimeFormatter DATE =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd");           // 2025-04-03
 
     public static String formatRelativeTime(Instant time) {
         return formatRelativeTime(time, ZoneId.systemDefault());
@@ -55,12 +52,7 @@ public class TimeFormatUtils {
 
     private static String formatDate(Instant time, ZoneId zone) {
         ZonedDateTime zdt = time.atZone(zone);
-        ZonedDateTime now = ZonedDateTime.now(zone);
 
-        if (zdt.getYear() == now.getYear()) {
-            return zdt.format(MONTH_DAY);         // Apr 3
-        } else {
-            return zdt.format(MONTH_DAY_YEAR);    // Apr 3, 2025
-        }
+        return zdt.format(DATE);
     }
 }
