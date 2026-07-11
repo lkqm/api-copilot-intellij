@@ -1,7 +1,6 @@
 package io.apicopilot.window.tree;
 
 import com.intellij.ui.ColoredTreeCellRenderer;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.SimpleTextAttributes;
 import io.apicopilot.document.Document;
 import io.apicopilot.document.SyncStatus;
@@ -13,8 +12,9 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 
-import java.awt.*;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.apache.commons.lang3.BooleanUtils.isNotTrue;
 
@@ -26,6 +26,8 @@ public class ApiViewCellRenderer extends ColoredTreeCellRenderer {
 
     @Override
     public void customizeCellRenderer(@NotNull JTree tree, Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) {
+        setToolTipText(null);
+
         if (value instanceof ApiViewNode) {
             ApiViewNode<?> node = (ApiViewNode<?>) value;
             if (getIcon() == null) {
@@ -42,23 +44,22 @@ public class ApiViewCellRenderer extends ColoredTreeCellRenderer {
             append(document.getName());
             SyncStatus syncStatus = document.getSyncStatus();
             boolean loading = syncStatus == SyncStatus.SYNCING;
+            boolean failed = syncStatus == SyncStatus.FAILED;
+            boolean hasUpdate = document.isHasUpdate();
+
             if (loading) {
-                append(" (Updating...)", SimpleTextAttributes.GRAY_ITALIC_ATTRIBUTES);
+                append(" · Syncing", SimpleTextAttributes.GRAY_ITALIC_ATTRIBUTES);
+            } else if (selected) {
+                if (document.getLastSuccessTime() != null) {
+                    Instant loadTime = Instant.ofEpochMilli(document.getLastSuccessTime());
+                    String time = TimeFormatUtils.formatRelativeTime(loadTime);
+                    append(" · Synced " + time, SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES);
+                } else {
+                    append(" · Not synced", SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES);
+                }
             }
-
-            if (!loading && selected && document.getLastSuccessTime() != null) {
-                Instant loadTime = Instant.ofEpochMilli(document.getLastSuccessTime());
-                String time = TimeFormatUtils.formatRelativeTime(loadTime);
-                append(" · Synced " + time, SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES);
-            }
-
-            if (!loading && syncStatus == SyncStatus.FAILED) {
-                append("  ⚠");
-            }
-
-            if (!loading && document.isHasUpdate()) {
-                append("  ↻", SimpleTextAttributes.GRAYED_ATTRIBUTES);
-            }
+            appendStatusIcons(failed, hasUpdate);
+            setToolTipText(buildDocumentTooltip(document, loading, failed, hasUpdate));
 
         } else if (value instanceof FolderNode) {
             // folder node
@@ -93,6 +94,40 @@ public class ApiViewCellRenderer extends ColoredTreeCellRenderer {
             }
         }
 
+    }
+
+    private void appendStatusIcons(boolean failed, boolean hasUpdate) {
+        if (failed) {
+            append("  ⚠", SimpleTextAttributes.GRAYED_ATTRIBUTES);
+        }
+        if (hasUpdate) {
+            append("  ↻", SimpleTextAttributes.GRAYED_ATTRIBUTES);
+        }
+    }
+
+    private String buildDocumentTooltip(Document document, boolean loading, boolean failed, boolean hasUpdate) {
+        if (!failed && !hasUpdate) {
+            return null;
+        }
+
+        List<String> lines = new ArrayList<>();
+        if (failed) {
+            lines.add("Sync failed");
+        }
+        if (hasUpdate) {
+            lines.add("Update available");
+        }
+        if (document.getLastSuccessTime() != null) {
+            Instant loadTime = Instant.ofEpochMilli(document.getLastSuccessTime());
+            lines.add("Last synced: " + TimeFormatUtils.formatDateTime(loadTime));
+        } else if (failed || hasUpdate) {
+            lines.add("No successful sync yet");
+        }
+
+        if (lines.isEmpty()) {
+            return null;
+        }
+        return "<html>" + String.join("<br/>", lines) + "</html>";
     }
 
 

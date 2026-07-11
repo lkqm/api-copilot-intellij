@@ -61,6 +61,7 @@ public class ApiViewTreePane extends JBScrollPane {
         DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
         model.setRoot(new DefaultMutableTreeNode());
         tree.setCellRenderer(new ApiViewCellRenderer());
+        ToolTipManager.sharedInstance().registerComponent(tree);
         tree.setRootVisible(false);
         tree.setShowsRootHandles(true);
         tree.setDragEnabled(true);

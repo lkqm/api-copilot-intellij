@@ -8,6 +8,9 @@ public class TimeFormatUtils {
     private static final DateTimeFormatter DATE =
             DateTimeFormatter.ofPattern("yyyy-MM-dd");           // 2025-04-03
 
+    private static final DateTimeFormatter DATE_TIME =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");      // 2025-04-03 14:30
+
     public static String formatRelativeTime(Instant time) {
         return formatRelativeTime(time, ZoneId.systemDefault());
     }
@@ -48,6 +51,15 @@ public class TimeFormatUtils {
 
         // >= 7 days → 显示日期
         return formatDate(time, zone);
+    }
+
+    public static String formatDateTime(Instant time) {
+        return formatDateTime(time, ZoneId.systemDefault());
+    }
+
+    public static String formatDateTime(Instant time, ZoneId zone) {
+        if (time == null) return "";
+        return time.atZone(zone).format(DATE_TIME);
     }
 
     private static String formatDate(Instant time, ZoneId zone) {
