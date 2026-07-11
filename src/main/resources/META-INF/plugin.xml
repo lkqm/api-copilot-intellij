@@ -37,51 +37,51 @@
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="Apix" displayType="BALLOON"/>
 
-        <postStartupActivity implementation="io.apicopilot.startup.DocumentUpdateStartupActivity"/>
+        <postStartupActivity implementation="io.apix.startup.DocumentUpdateStartupActivity"/>
 
-        <projectService serviceInterface="io.apicopilot.window.ApiView"
-                        serviceImplementation="io.apicopilot.window.ApiViewImpl"/>
-        <projectService serviceImplementation="io.apicopilot.debug.DebugSettings"/>
+        <projectService serviceInterface="io.apix.window.ApiView"
+                        serviceImplementation="io.apix.window.ApiViewImpl"/>
+        <projectService serviceImplementation="io.apix.debug.DebugSettings"/>
         <!-- 视图窗口 -->
         <toolWindow id="ApiView" anchor="right" icon="AllIcons.Toolwindows.Documentation" order="last"
-                    factoryClass="io.apicopilot.window.ApiViewToolWindowFactory"/>
+                    factoryClass="io.apix.window.ApiViewToolWindowFactory"/>
         <!-- 快速搜索 -->
-        <searchEverywhereContributor implementation="io.apicopilot.search.ApiSearchEverywhereContributorFactory"/>
+        <searchEverywhereContributor implementation="io.apix.search.ApiSearchEverywhereContributorFactory"/>
 
         <!-- 代码提示 -->
         <completion.contributor language="any" order="first"
-                                implementationClass="io.apicopilot.editor.completion.PathCompletionContributor"/>
+                                implementationClass="io.apix.editor.completion.PathCompletionContributor"/>
         <completion.confidence language="any" order="before javaSkipAutopopupInStrings"
-                               implementationClass="io.apicopilot.editor.completion.PathCompletionConfidence"/>
-        <lookup.charFilter implementation="io.apicopilot.editor.completion.PathCompletionCharFilter"/>
-        <typedHandler implementation="io.apicopilot.editor.completion.PathCompletionTypedHandler" order="first"/>
+                               implementationClass="io.apix.editor.completion.PathCompletionConfidence"/>
+        <lookup.charFilter implementation="io.apix.editor.completion.PathCompletionCharFilter"/>
+        <typedHandler implementation="io.apix.editor.completion.PathCompletionTypedHandler" order="first"/>
 
         <!-- 路径跳转 -->
-        <psi.referenceContributor language="" implementation="io.apicopilot.editor.reference.PathReferenceContributor"/>
+        <psi.referenceContributor language="" implementation="io.apix.editor.reference.PathReferenceContributor"/>
 
         <!-- 文档 -->
         <lang.documentationProvider language=""
-                                    implementationClass="io.apicopilot.editor.documentation.ApiDocumentationProvider"/>
+                                    implementationClass="io.apix.editor.documentation.ApiDocumentationProvider"/>
     </extensions>
 
     <actions>
         <!-- Add your actions here -->
-        <action id="apix.GotoApiAction" class="io.apicopilot.search.GotoApiAction">
+        <action id="apix.GotoApiAction" class="io.apix.search.GotoApiAction">
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl BACK_SLASH"/>
         </action>
 
         <group id="ApiViewToolWindowToolbar">
-            <group class="io.apicopilot.window.action.AddAction" id="apix.AddAction"/>
-            <action class="io.apicopilot.window.action.RemoveAction"/>
+            <group class="io.apix.window.action.AddAction" id="apix.AddAction"/>
+            <action class="io.apix.window.action.RemoveAction"/>
             <separator/>
-            <action class="io.apicopilot.window.action.RefreshAction"/>
-            <action class="io.apicopilot.window.action.PreviewAction"/>
+            <action class="io.apix.window.action.RefreshAction"/>
+            <action class="io.apix.window.action.PreviewAction"/>
             <separator/>
-            <action class="io.apicopilot.window.action.GenerateCodeAction"/>
+            <action class="io.apix.window.action.GenerateCodeAction"/>
         </group>
 
         <group id="ApiViewToolbar">
-            <action class="io.apicopilot.window.action.LocateApiAction"/>
+            <action class="io.apix.window.action.LocateApiAction"/>
             <reference ref="ExpandAll"/>
             <reference ref="CollapseAll"/>
         </group>
