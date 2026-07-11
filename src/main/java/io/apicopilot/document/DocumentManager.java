@@ -39,8 +39,7 @@ public class DocumentManager {
      */
     @NotNull
     public List<Document> getDocuments() {
-        DocumentSettings settings = DocumentSettings.getInstance(this.project);
-        List<Document> documents = settings.getDocuments();
+        List<Document> documents = DocumentRepository.getInstance(this.project).get();
         if (documents == null || documents.isEmpty()) {
             return Collections.emptyList();
         }

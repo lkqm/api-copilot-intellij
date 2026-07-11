@@ -2,6 +2,7 @@ package io.apicopilot.document;
 
 import com.intellij.util.xmlb.annotations.Tag;
 import com.intellij.util.xmlb.annotations.Transient;
+import com.intellij.util.xmlb.annotations.OptionTag;
 import io.swagger.v3.oas.models.OpenAPI;
 import lombok.Data;
 
@@ -161,12 +162,24 @@ public class Document {
         /**
          * 访问令牌
          */
+        @Transient
         private String accessToken;
+
+        /**
+         * Compatibility field for tokens stored by older versions.
+         */
+        @OptionTag("accessToken")
+        private String legacyAccessToken;
 
         /**
          * 项目id
          */
         private String projectId;
+
+        @Transient
+        public String getAccessToken() {
+            return accessToken;
+        }
 
     }
 
@@ -183,7 +196,14 @@ public class Document {
         /**
          * 访问令牌
          */
+        @Transient
         private String apiKey;
+
+        /**
+         * Compatibility field for keys stored by older versions.
+         */
+        @OptionTag("apiKey")
+        private String legacyApiKey;
 
         /**
          * 用户和组织
@@ -199,6 +219,11 @@ public class Document {
          * 文档版本
          */
         private String version = "default";
+
+        @Transient
+        public String getApiKey() {
+            return apiKey;
+        }
 
     }
 }

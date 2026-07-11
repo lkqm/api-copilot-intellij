@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -26,6 +27,7 @@ public class DocumentRepository {
      */
     public List<Document> get() {
         DocumentSettings settings = DocumentSettings.getInstance(project);
+        settings.getDocuments().forEach(this::loadCredentials);
         return settings.getDocuments();
     }
 
@@ -35,9 +37,11 @@ public class DocumentRepository {
     @Nullable
     public Document get(@NonNull String id) {
         DocumentSettings settings = DocumentSettings.getInstance(project);
-        return settings.getDocuments().stream()
+        Document document = settings.getDocuments().stream()
                 .filter(datasource -> id.equals(datasource.getId()))
                 .findFirst().orElse(null);
+        loadCredentials(document);
+        return document;
     }
 
     /**
@@ -47,6 +51,8 @@ public class DocumentRepository {
         if (document.getId() == null) {
             document.setId(UUID.randomUUID().toString());
         }
+        saveCredentials(document);
+        clearLegacyCredentials(document);
         DocumentSettings settings = DocumentSettings.getInstance(project);
         List<Document> documents = settings.getDocuments();
 
@@ -70,6 +76,7 @@ public class DocumentRepository {
     public void delete(@NonNull String id) {
         DocumentSettings settings = DocumentSettings.getInstance(project);
         settings.getDocuments().removeIf(datasource -> id.equals(datasource.getId()));
+        DocumentCredentialService.delete(id);
         settings.loadState(settings);
     }
 
@@ -80,6 +87,7 @@ public class DocumentRepository {
         DocumentSettings settings = DocumentSettings.getInstance(project);
         for (String id : ids) {
             settings.getDocuments().removeIf(document -> id.equals(document.getId()));
+            DocumentCredentialService.delete(id);
         }
         settings.loadState(settings);
     }
@@ -135,6 +143,55 @@ public class DocumentRepository {
         }
 
         documents.add(insertIndex, doc);
+    }
+
+    private void loadCredentials(Document document) {
+        if (document == null) {
+            return;
+        }
+        Document.ApifoxConfig apifoxConfig = document.getApifoxConfig();
+        if (apifoxConfig != null && StringUtils.isEmpty(apifoxConfig.getAccessToken())) {
+            String accessToken = DocumentCredentialService.get(document, DocumentCredentialService.APIFOX_ACCESS_TOKEN);
+            if (StringUtils.isNotEmpty(accessToken)) {
+                apifoxConfig.setAccessToken(accessToken);
+            } else if (StringUtils.isNotEmpty(apifoxConfig.getLegacyAccessToken())) {
+                apifoxConfig.setAccessToken(apifoxConfig.getLegacyAccessToken());
+            }
+        }
+
+        Document.SwaggerHubConfig swaggerHubConfig = document.getSwaggerHubConfig();
+        if (swaggerHubConfig != null && StringUtils.isEmpty(swaggerHubConfig.getApiKey())) {
+            String apiKey = DocumentCredentialService.get(document, DocumentCredentialService.SWAGGERHUB_API_KEY);
+            if (StringUtils.isNotEmpty(apiKey)) {
+                swaggerHubConfig.setApiKey(apiKey);
+            } else if (StringUtils.isNotEmpty(swaggerHubConfig.getLegacyApiKey())) {
+                swaggerHubConfig.setApiKey(swaggerHubConfig.getLegacyApiKey());
+            }
+        }
+    }
+
+    private void saveCredentials(Document document) {
+        Document.ApifoxConfig apifoxConfig = document.getApifoxConfig();
+        if (apifoxConfig != null) {
+            DocumentCredentialService.set(document, DocumentCredentialService.APIFOX_ACCESS_TOKEN, apifoxConfig.getAccessToken());
+        }
+
+        Document.SwaggerHubConfig swaggerHubConfig = document.getSwaggerHubConfig();
+        if (swaggerHubConfig != null) {
+            DocumentCredentialService.set(document, DocumentCredentialService.SWAGGERHUB_API_KEY, swaggerHubConfig.getApiKey());
+        }
+    }
+
+    private void clearLegacyCredentials(Document document) {
+        Document.ApifoxConfig apifoxConfig = document.getApifoxConfig();
+        if (apifoxConfig != null) {
+            apifoxConfig.setLegacyAccessToken(null);
+        }
+
+        Document.SwaggerHubConfig swaggerHubConfig = document.getSwaggerHubConfig();
+        if (swaggerHubConfig != null) {
+            swaggerHubConfig.setLegacyApiKey(null);
+        }
     }
 
 }
