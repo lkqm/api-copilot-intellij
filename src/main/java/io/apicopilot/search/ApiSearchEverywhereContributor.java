@@ -34,7 +34,7 @@ import java.util.List;
 
 public class ApiSearchEverywhereContributor implements WeightedSearchEverywhereContributor<ApiNavigationData> {
 
-    public static final String ID = "apicopilot.ApiSearchEverywhereContributor";
+    public static final String ID = "apix.ApiSearchEverywhereContributor";
     public static final String GROUP_NAME = "APIs";
 
     private final AnActionEvent actionEvent;

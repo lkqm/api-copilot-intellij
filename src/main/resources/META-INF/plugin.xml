@@ -1,12 +1,11 @@
 <idea-plugin>
     <id>apicopilot</id>
-    <name>API Copilot</name>
+    <name>Apix</name>
     <vendor url="https://github.com/lkqm">lkqm</vendor>
     <description><![CDATA[
-        Integrating API documentation into the IDE<br>
-        Slogan: "Your smart assistant for understanding, navigating, and using APIs — right inside your IDE."<br>
+        Apix is an API workbench for JetBrains IDEs.<br>
         <p>
-            <a href="https://github.com/lkqm/api-copilot">GitHub</a>
+            <a href="https://github.com/lkqm/apix">GitHub</a>
         </p>
         <h3>Features</h3>
         <ul>
@@ -36,7 +35,7 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <notificationGroup id="API Copilot" displayType="BALLOON"/>
+        <notificationGroup id="Apix" displayType="BALLOON"/>
 
         <postStartupActivity implementation="io.apicopilot.startup.DocumentUpdateStartupActivity"/>
 
@@ -67,12 +66,12 @@
 
     <actions>
         <!-- Add your actions here -->
-        <action id="apicopilot.GotoApiAction" class="io.apicopilot.search.GotoApiAction">
+        <action id="apix.GotoApiAction" class="io.apicopilot.search.GotoApiAction">
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl BACK_SLASH"/>
         </action>
 
         <group id="ApiViewToolWindowToolbar">
-            <group class="io.apicopilot.window.action.AddAction" id="apicopilot.AddAction"/>
+            <group class="io.apicopilot.window.action.AddAction" id="apix.AddAction"/>
             <action class="io.apicopilot.window.action.RemoveAction"/>
             <separator/>
             <action class="io.apicopilot.window.action.RefreshAction"/>

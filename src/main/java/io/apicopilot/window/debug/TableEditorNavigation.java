@@ -6,8 +6,8 @@ import java.awt.*;
 
 final class TableEditorNavigation {
 
-    private static final String ACTION_TAB_FORWARD = "api-copilot.table.tab.forward";
-    private static final String ACTION_TAB_BACKWARD = "api-copilot.table.tab.backward";
+    private static final String ACTION_TAB_FORWARD = "apix.table.tab.forward";
+    private static final String ACTION_TAB_BACKWARD = "apix.table.tab.backward";
 
     private TableEditorNavigation() {}
 

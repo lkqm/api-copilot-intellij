@@ -1,3 +1,3 @@
-# API Copilot
+# Apix
 
-Integrating API documentation into the IDE.
+API workbench for JetBrains IDEs.
