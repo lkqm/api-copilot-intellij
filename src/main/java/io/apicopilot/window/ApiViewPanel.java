@@ -194,7 +194,16 @@ public class ApiViewPanel extends SimpleToolWindowPanel implements Disposable {
     }
 
     public boolean select(String connectionId, String method, String path) {
-        return treePane.select(connectionId, method, path);
+        boolean selected = treePane.select(connectionId, method, path);
+        if (selected) {
+            DefaultMutableTreeNode treeNode = (DefaultMutableTreeNode) treePane.getTree().getLastSelectedPathComponent();
+            if (treeNode instanceof RequestNode) {
+                RequestNode.Context data = ((RequestNode) treeNode).getData();
+                ensureRightPaneVisible();
+                openPreview(data.getDocument(), data.getRequest());
+            }
+        }
+        return selected;
     }
 
     /**
