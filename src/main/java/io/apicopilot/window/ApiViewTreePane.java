@@ -38,6 +38,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ApiViewTreePane extends JBScrollPane {
 
+    public static final String SUPPRESS_SELECTION_PREVIEW = "ApiViewTreePane.suppressSelectionPreview";
+
     private final Project project;
     @Getter
     private final Tree tree;
@@ -259,29 +261,8 @@ public class ApiViewTreePane extends JBScrollPane {
 
             @Override
             public void mousePressed(MouseEvent event) {
-                boolean isRightClick = SwingUtilities.isRightMouseButton(event);
-                if (!isRightClick) {
-                    return;
-                }
-
-                JPopupMenu popupMenu = null;
-                DefaultMutableTreeNode treeNode = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
-                if (treeNode == null) {
-                    return;
-                }
-                if (treeNode instanceof ApiViewNode) {
-                    ApiViewNode.MouseEventContext ctx = ApiViewNode.MouseEventContext.builder()
-                            .event(event)
-                            .project(project)
-                            .tree(tree)
-                            .build();
-                    popupMenu = ((ApiViewNode<?>) treeNode).getPopupMenu(ctx);
-                }
-                if (popupMenu != null) {
-                    popupMenu.show(tree, event.getX(), event.getY());
-                }
+                showPopup(event);
             }
-
 
         });
 
@@ -301,6 +282,38 @@ public class ApiViewTreePane extends JBScrollPane {
                 }
             }
         });
+    }
+
+    private void showPopup(MouseEvent event) {
+        if (!event.isPopupTrigger() && !SwingUtilities.isRightMouseButton(event)) {
+            return;
+        }
+
+        TreePath path = tree.getPathForLocation(event.getX(), event.getY());
+        if (path == null) {
+            return;
+        }
+        tree.putClientProperty(SUPPRESS_SELECTION_PREVIEW, true);
+        try {
+            tree.setSelectionPath(path);
+        } finally {
+            tree.putClientProperty(SUPPRESS_SELECTION_PREVIEW, null);
+        }
+
+        Object treeNode = path.getLastPathComponent();
+        if (!(treeNode instanceof ApiViewNode)) {
+            return;
+        }
+
+        ApiViewNode.MouseEventContext ctx = ApiViewNode.MouseEventContext.builder()
+                .event(event)
+                .project(project)
+                .tree(tree)
+                .build();
+        JPopupMenu popupMenu = ((ApiViewNode<?>) treeNode).getPopupMenu(ctx);
+        if (popupMenu != null) {
+            popupMenu.show(tree, event.getX(), event.getY());
+        }
     }
 
     /**

@@ -98,7 +98,7 @@ public class ApiViewCellRenderer extends ColoredTreeCellRenderer {
 
     private void appendStatusIcons(boolean failed, boolean hasUpdate) {
         if (failed) {
-            append("  ⚠", SimpleTextAttributes.GRAYED_ATTRIBUTES);
+            append("  ⚠");
         }
         if (hasUpdate) {
             append("  ↻", SimpleTextAttributes.GRAYED_ATTRIBUTES);

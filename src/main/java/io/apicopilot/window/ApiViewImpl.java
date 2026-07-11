@@ -140,7 +140,7 @@ public class ApiViewImpl implements PersistentStateComponent<Element>, ApiView {
             ToolWindow window = ToolWindowManager.getInstance(this.project).getToolWindow(ApiViewToolWindowFactory.ID);
             this.setup(window);
         }
-        toolWindow.show(() -> this.panel.select(documentId, method, path));
+        toolWindow.activate(() -> this.panel.select(documentId, method, path), true);
     }
 
     @Override

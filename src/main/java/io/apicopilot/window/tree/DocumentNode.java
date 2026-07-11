@@ -2,21 +2,21 @@ package io.apicopilot.window.tree;
 
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.ActionPlaces;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.JBMenuItem;
-import com.intellij.openapi.ui.JBPopupMenu;
 import com.intellij.openapi.vcs.VcsShowConfirmationOption;
 import com.intellij.util.ui.ConfirmationDialog;
-import io.apicopilot.codegen.ui.GenerateCodeDialog;
 import io.apicopilot.document.Document;
 import io.apicopilot.document.DocumentClipboard;
 import io.apicopilot.document.DocumentManager;
 import io.apicopilot.document.DocumentRepository;
 import io.apicopilot.document.LoadResult;
 import io.apicopilot.document.SyncStatus;
-import io.apicopilot.model.Request;
 import io.apicopilot.util.NotificationUtils;
-import io.apicopilot.util.OpenApiUtils;
 import io.apicopilot.window.ApiViewTreePane;
 import io.apicopilot.window.dialog.DocumentEditDialog;
 import lombok.*;
@@ -24,7 +24,6 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
-import java.util.List;
 
 /**
  * Document node.
@@ -39,67 +38,75 @@ public class DocumentNode extends ApiViewNode<DocumentNode.Context> {
     public JPopupMenu getPopupMenu(MouseEventContext ctx) {
         Project project = ctx.getProject();
         Document document = data.getDocument();
-        JPopupMenu menu = new JBPopupMenu();
+        DefaultActionGroup group = new DefaultActionGroup();
 
         // Reload document
         if (document.getSyncStatus() != SyncStatus.SYNCING) {
-            JMenuItem reloadItem = new JBMenuItem("Reload");
-            reloadItem.addActionListener(actionEvent -> {
-                document.setSyncStatus(SyncStatus.SYNCING);
-                data.getTreePane().refreshDocumentNode(document, false);
+            group.add(new AnAction("Reload") {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent actionEvent) {
+                    document.setSyncStatus(SyncStatus.SYNCING);
+                    data.getTreePane().refreshDocumentNode(document, false);
 
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    DocumentManager documentManager = DocumentManager.getInstance(project);
-                    LoadResult loadResult = documentManager.reloadDocument(document);
-                    if (!loadResult.isSuccess()) {
-                        NotificationUtils.notifyError("Refresh document failed", loadResult.getFailReason());
-                    }
-                });
+                    ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                        DocumentManager documentManager = DocumentManager.getInstance(project);
+                        LoadResult loadResult = documentManager.reloadDocument(document);
+                        if (!loadResult.isSuccess()) {
+                            NotificationUtils.notifyError("Refresh document failed", loadResult.getFailReason());
+                        }
+                    });
+                }
             });
-            menu.add(reloadItem);
         }
 
         // Enable document
         boolean enable = document.isEnable();
-        JMenuItem switchItem = new JBMenuItem(enable ? "Disable" : "Enable");
-        switchItem.addActionListener(actionEvent -> {
-            document.setEnable(!enable);
-            DocumentRepository.getInstance(project).save(document);
-            data.getTreePane().setDocumentNodeDisable(document.getId());
+        group.add(new AnAction(enable ? "Disable" : "Enable") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent actionEvent) {
+                document.setEnable(!enable);
+                DocumentRepository.getInstance(project).save(document);
+                data.getTreePane().setDocumentNodeDisable(document.getId());
+            }
         });
-        menu.add(switchItem);
 
         // Edit document
-        JMenuItem editItem = new JBMenuItem("Edit");
-        editItem.addActionListener(actionEvent -> {
-            DocumentEditDialog.show(project, document.getType(), document);
+        group.add(new AnAction("Edit") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent actionEvent) {
+                DocumentEditDialog.show(project, document.getType(), document);
+            }
         });
-        menu.add(editItem);
 
         // Delete document
-        JMenuItem deleteItem = new JBMenuItem("Delete");
-        deleteItem.addActionListener(actionEvent -> {
-            DocumentRepository.getInstance(project).delete(document.getId());
-            data.getTreePane().removeDocumentNode(document.getId());
+        group.add(new AnAction("Delete") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent actionEvent) {
+                DocumentRepository.getInstance(project).delete(document.getId());
+                data.getTreePane().removeDocumentNode(document.getId());
+            }
         });
-        menu.add(deleteItem);
 
         // Expand all children
-        JMenuItem expandAllItem = new JBMenuItem("Expand All");
-        expandAllItem.addActionListener(actionEvent -> {
-            data.getTreePane().expandDocumentNode(document.getId());
+        group.add(new AnAction("Expand All") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent actionEvent) {
+                data.getTreePane().expandDocumentNode(document.getId());
+            }
         });
-        menu.add(expandAllItem);
 
         // Duplicate document
-        JMenuItem duplicateItem = new JBMenuItem("Duplicate");
-        duplicateItem.addActionListener(actionEvent -> {
-            DocumentEditDialog.showDuplicate(project, document);
+        group.add(new AnAction("Duplicate") {
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent actionEvent) {
+                DocumentEditDialog.showDuplicate(project, document);
+            }
         });
-        menu.add(duplicateItem);
 
 
-        return menu;
+        return ActionManager.getInstance()
+                .createActionPopupMenu(ActionPlaces.POPUP, group)
+                .getComponent();
     }
 
     @Override

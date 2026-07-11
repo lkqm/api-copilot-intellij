@@ -82,6 +82,9 @@ public class ApiViewPanel extends SimpleToolWindowPanel implements Disposable {
 
         // Single click: open/replace preview tab (or focus if already a permanent tab)
         tree.addTreeSelectionListener(e -> {
+            if (Boolean.TRUE.equals(tree.getClientProperty(ApiViewTreePane.SUPPRESS_SELECTION_PREVIEW))) {
+                return;
+            }
             DefaultMutableTreeNode treeNode = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
             if (treeNode instanceof RequestNode) {
                 RequestNode.Context data = ((RequestNode) treeNode).getData();
