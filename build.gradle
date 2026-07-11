@@ -53,8 +53,8 @@ intellij {
 }
 patchPluginXml {
     changeNotes = """
-        fix: polish UI styles
-        feat: support file downloads in Debug
+        Polished UI styles.<br>
+        File download support in Debug.
     """
 }
 

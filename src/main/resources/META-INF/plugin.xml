@@ -9,21 +9,22 @@
         </p>
         <h3>Features</h3>
         <ul>
-            <li>Supports OpenAPI, Swagger Hub, Apifox.</li>
-            <li>Documentation preview.</li>
-            <li>Path completion.</li>
-            <li>Jump to documentation from path.</li>
-            <li>Generate code.</li>
-            <li>More features are developing...</li>
+            <li>OpenAPI, SwaggerHub, and Apifox document support.</li>
+            <li>API tree navigation and documentation preview.</li>
+            <li>Quick API search.</li>
+            <li>Path completion in string literals.</li>
+            <li>Jump to API documentation from paths.</li>
+            <li>API request debugging.</li>
+            <li>Code generation.</li>
         </ul>
 
-        <h3>Usages</h3>
+        <h3>Usage</h3>
         <ul>
-            <li>Add API document in API tool window.</li>
-            <li>Ctrl + \ to search API.</li>
-            <li>Typed slash '/' in editor while code completion.</li>
-            <li>Ctrl + click jump to API document.</li>
-            <li>Right-click to generate code.</li>
+            <li>Add an API document in the API tool window.</li>
+            <li>Press Ctrl + \ to search APIs.</li>
+            <li>Type / inside string literals to trigger path completion.</li>
+            <li>Use Ctrl + click to jump to API documentation.</li>
+            <li>Select APIs and click Generate Code in the API tool window toolbar.</li>
         </ul>
     ]]></description>
 
