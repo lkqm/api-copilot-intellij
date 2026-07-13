@@ -9,11 +9,14 @@ import org.jetbrains.annotations.NotNull;
 
 public class GotoApiAction extends SearchEverywhereBaseAction implements DumbAware {
 
+    static final String TEXT = "Go to API...";
+    static final String MAIN_MENU_TEXT = "API...";
+
     public GotoApiAction() {
         Presentation presentation = getTemplatePresentation();
-        presentation.setText("Go to API...");
+        presentation.setText(TEXT);
         presentation.setDescription("Quickly navigate to API documentation");
-        addTextOverride(ActionPlaces.MAIN_MENU, "API...");
+        addTextOverride(ActionPlaces.MAIN_MENU, MAIN_MENU_TEXT);
     }
 
     @Override

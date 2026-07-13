@@ -4,7 +4,6 @@ import com.intellij.ide.actions.SearchEverywherePsiRenderer;
 import com.intellij.ide.actions.searcheverywhere.FoundItemDescriptor;
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereManager;
 import com.intellij.ide.actions.searcheverywhere.WeightedSearchEverywhereContributor;
-import com.intellij.idea.ActionsBundle;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
@@ -189,7 +188,8 @@ public class ApiSearchEverywhereContributor implements WeightedSearchEverywhereC
         if (seManager.isShown()) {
             return getSearchProviderId().equals(seManager.getSelectedTabID());
         } else {
-            return !ActionsBundle.message("action.SearchEverywhere.text").equals(actionEvent.getPresentation().getText());
+            String actionText = actionEvent.getPresentation().getText();
+            return GotoApiAction.TEXT.equals(actionText) || GotoApiAction.MAIN_MENU_TEXT.equals(actionText);
         }
     }
 
