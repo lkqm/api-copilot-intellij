@@ -68,6 +68,7 @@ public class DocumentManager {
     }
 
     private LoadResult doLoadDocument(Document document, boolean reload) {
+        DocumentRepository.getInstance(project).loadCredentials(document);
         DocumentSourceType type = document.getType();
         ApiResolver apiResolver = DocumentSourceType.getApiResolver(type, project, document);
         ResolveResult resolveResult = apiResolver != null ? apiResolver.resolve(reload) : ResolveResult.fail("Unknown document type: " + type);
@@ -105,6 +106,7 @@ public class DocumentManager {
             return new CheckUpdateResult(true, false, null);
         }
 
+        DocumentRepository.getInstance(project).loadCredentials(document);
         ApiResolver resolver = DocumentSourceType.getApiResolver(document.getType(), project, document);
         if (resolver == null) {
             return new CheckUpdateResult(false, false, "Unknow document type");

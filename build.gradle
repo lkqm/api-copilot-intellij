@@ -11,7 +11,7 @@ plugins {
 }
 
 group 'com.github.jetplugins'
-version '0.7.0'
+version '0.8.0'
 java.sourceCompatibility = 11
 java.targetCompatibility = 11
 compileJava.options.encoding = "UTF-8"
@@ -53,8 +53,7 @@ intellij {
 }
 patchPluginXml {
     changeNotes = """
-        Polished UI styles.<br>
-        File download support in Debug.
+        Added global connection settings for Apifox and SwaggerHub.
     """
 }
 

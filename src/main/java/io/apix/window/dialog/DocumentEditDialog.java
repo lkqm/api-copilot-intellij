@@ -53,6 +53,7 @@ public class DocumentEditDialog extends DialogWrapper {
     protected void init() {
         super.init();
         if (document != null) {
+            DocumentRepository.getInstance(project).loadCredentials(document);
             form.set(document);
         }
     }

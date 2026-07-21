@@ -1,6 +1,8 @@
 package io.apix.document.resolver;
 
 import io.apix.document.Document;
+import io.apix.document.Connection;
+import io.apix.document.ConnectionRepository;
 import io.apix.util.HttpUtils;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
@@ -34,14 +36,18 @@ public class SwaggerHubApiResolver extends AbstractApiResolver {
         if (apiConfig == null) {
             return ResolveResult.fail("invalid document config");
         }
-        boolean invalid = StringUtils.isAnyEmpty(apiConfig.getServiceUrl(), apiConfig.getApiKey(), apiConfig.getOwner(), apiConfig.getApi());
+        Connection connection = ConnectionRepository.getInstance().getWithCredential(apiConfig.getConnectionId());
+        String serviceUrl = connection != null ? connection.getBaseUrl() : apiConfig.getServiceUrl();
+        String apiKey = connection != null ? connection.getCredential() : apiConfig.getApiKey();
+
+        boolean invalid = StringUtils.isAnyEmpty(serviceUrl, apiKey, apiConfig.getOwner(), apiConfig.getApi());
         if (invalid) {
             return ResolveResult.fail("invalid swagger hub config");
         }
 
-        String url = apiConfig.getServiceUrl() + String.format(EXPORT_PATH, apiConfig.getOwner(), apiConfig.getApi(), apiConfig.getVersion());
+        String url = serviceUrl + String.format(EXPORT_PATH, apiConfig.getOwner(), apiConfig.getApi(), apiConfig.getVersion());
         Map<String, String> headers = new HashMap<>();
-        headers.put("Authorization", apiConfig.getApiKey());
+        headers.put("Authorization", apiKey);
         headers.put("Accept", "application/json");
         try {
             byte[] data = HttpUtils.get(url, headers, Duration.ofSeconds(10));

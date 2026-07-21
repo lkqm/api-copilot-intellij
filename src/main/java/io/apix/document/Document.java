@@ -144,6 +144,11 @@ public class Document {
          */
         private String path;
 
+        /**
+         * Global connection id for remote OpenAPI authentication.
+         */
+        private String connectionId;
+
         public boolean isRemote() {
             return path != null && (path.startsWith("http://") || path.startsWith("https://"));
         }
@@ -154,6 +159,11 @@ public class Document {
      */
     @Data
     public static class ApifoxConfig {
+        /**
+         * Global connection id.
+         */
+        private String connectionId;
+
         /**
          * 服务地址
          */
@@ -188,6 +198,11 @@ public class Document {
      */
     @Data
     public static class SwaggerHubConfig {
+        /**
+         * Global connection id.
+         */
+        private String connectionId;
+
         /**
          * 服务地址
          */

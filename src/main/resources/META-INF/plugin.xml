@@ -43,6 +43,10 @@
         <projectService serviceInterface="io.apix.window.ApiView"
                         serviceImplementation="io.apix.window.ApiViewImpl"/>
         <projectService serviceImplementation="io.apix.debug.DebugSettings"/>
+        <applicationService serviceImplementation="io.apix.document.ConnectionSettings"/>
+        <applicationService serviceImplementation="io.apix.document.ConnectionRepository"/>
+        <applicationConfigurable parentId="tools"
+                                 instance="io.apix.window.settings.ConnectionsConfigurable"/>
         <!-- 视图窗口 -->
         <toolWindow id="ApiView" anchor="right" icon="AllIcons.Toolwindows.Documentation" order="last"
                     factoryClass="io.apix.window.ApiViewToolWindowFactory"/>

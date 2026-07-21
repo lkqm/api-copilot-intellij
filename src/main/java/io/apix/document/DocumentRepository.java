@@ -27,7 +27,6 @@ public class DocumentRepository {
      */
     public List<Document> get() {
         DocumentSettings settings = DocumentSettings.getInstance(project);
-        settings.getDocuments().forEach(this::loadCredentials);
         return settings.getDocuments();
     }
 
@@ -37,9 +36,17 @@ public class DocumentRepository {
     @Nullable
     public Document get(@NonNull String id) {
         DocumentSettings settings = DocumentSettings.getInstance(project);
-        Document document = settings.getDocuments().stream()
+        return settings.getDocuments().stream()
                 .filter(datasource -> id.equals(datasource.getId()))
                 .findFirst().orElse(null);
+    }
+
+    /**
+     * Fetch one document with credentials loaded from PasswordSafe.
+     */
+    @Nullable
+    public Document getWithCredentials(@NonNull String id) {
+        Document document = get(id);
         loadCredentials(document);
         return document;
     }
@@ -51,7 +58,13 @@ public class DocumentRepository {
         if (document.getId() == null) {
             document.setId(UUID.randomUUID().toString());
         }
-        saveCredentials(document);
+        migrateLegacyConnection(document);
+        if (usesConnection(document)) {
+            DocumentCredentialService.delete(document.getId());
+            clearCredentials(document);
+        } else {
+            saveCredentials(document);
+        }
         clearLegacyCredentials(document);
         DocumentSettings settings = DocumentSettings.getInstance(project);
         List<Document> documents = settings.getDocuments();
@@ -145,7 +158,48 @@ public class DocumentRepository {
         documents.add(insertIndex, doc);
     }
 
-    private void loadCredentials(Document document) {
+    private void migrateLegacyConnection(Document document) {
+        DocumentSourceType type = document.getType();
+        if (type == DocumentSourceType.Apifox) {
+            migrateApifoxConnection(document);
+        } else if (type == DocumentSourceType.SwaggerHub) {
+            migrateSwaggerHubConnection(document);
+        }
+    }
+
+    private void migrateApifoxConnection(Document document) {
+        Document.ApifoxConfig config = document.getApifoxConfig();
+        if (config == null || StringUtils.isNotBlank(config.getConnectionId())) {
+            return;
+        }
+        if (StringUtils.isAnyBlank(config.getServiceUrl(), config.getAccessToken())) {
+            return;
+        }
+        Connection connection = ConnectionRepository.getInstance().getOrCreate(
+                DocumentSourceType.Apifox,
+                config.getServiceUrl(),
+                config.getAccessToken(),
+                "Apifox");
+        config.setConnectionId(connection.getId());
+    }
+
+    private void migrateSwaggerHubConnection(Document document) {
+        Document.SwaggerHubConfig config = document.getSwaggerHubConfig();
+        if (config == null || StringUtils.isNotBlank(config.getConnectionId())) {
+            return;
+        }
+        if (StringUtils.isAnyBlank(config.getServiceUrl(), config.getApiKey())) {
+            return;
+        }
+        Connection connection = ConnectionRepository.getInstance().getOrCreate(
+                DocumentSourceType.SwaggerHub,
+                config.getServiceUrl(),
+                config.getApiKey(),
+                "SwaggerHub");
+        config.setConnectionId(connection.getId());
+    }
+
+    public void loadCredentials(Document document) {
         if (document == null) {
             return;
         }
@@ -166,6 +220,38 @@ public class DocumentRepository {
                 swaggerHubConfig.setApiKey(apiKey);
             } else if (StringUtils.isNotEmpty(swaggerHubConfig.getLegacyApiKey())) {
                 swaggerHubConfig.setApiKey(swaggerHubConfig.getLegacyApiKey());
+            }
+        }
+    }
+
+    private boolean usesConnection(Document document) {
+        if (document.getType() == DocumentSourceType.Apifox) {
+            Document.ApifoxConfig apifoxConfig = document.getApifoxConfig();
+            return apifoxConfig != null && StringUtils.isNotBlank(apifoxConfig.getConnectionId());
+        }
+
+        if (document.getType() == DocumentSourceType.SwaggerHub) {
+            Document.SwaggerHubConfig swaggerHubConfig = document.getSwaggerHubConfig();
+            return swaggerHubConfig != null && StringUtils.isNotBlank(swaggerHubConfig.getConnectionId());
+        }
+
+        return false;
+    }
+
+    private void clearCredentials(Document document) {
+        if (document.getType() == DocumentSourceType.Apifox) {
+            Document.ApifoxConfig apifoxConfig = document.getApifoxConfig();
+            if (apifoxConfig != null) {
+                apifoxConfig.setServiceUrl(null);
+                apifoxConfig.setAccessToken(null);
+            }
+        }
+
+        if (document.getType() == DocumentSourceType.SwaggerHub) {
+            Document.SwaggerHubConfig swaggerHubConfig = document.getSwaggerHubConfig();
+            if (swaggerHubConfig != null) {
+                swaggerHubConfig.setServiceUrl(null);
+                swaggerHubConfig.setApiKey(null);
             }
         }
     }

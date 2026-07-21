@@ -1,6 +1,8 @@
 package io.apix.document.resolver;
 
 import io.apix.document.Document;
+import io.apix.document.Connection;
+import io.apix.document.ConnectionRepository;
 import io.apix.util.HttpUtils;
 import io.apix.util.JsonUtils;
 import lombok.AllArgsConstructor;
@@ -37,19 +39,23 @@ public class ApifoxApiResolver extends AbstractApiResolver {
         if (apiConfig == null) {
             return ResolveResult.fail("invalid document config");
         }
-        boolean invalid = StringUtils.isAnyEmpty(apiConfig.getServiceUrl(), apiConfig.getAccessToken(), apiConfig.getProjectId());
+        Connection connection = ConnectionRepository.getInstance().getWithCredential(apiConfig.getConnectionId());
+        String serviceUrl = connection != null ? connection.getBaseUrl() : apiConfig.getServiceUrl();
+        String accessToken = connection != null ? connection.getCredential() : apiConfig.getAccessToken();
+
+        boolean invalid = StringUtils.isAnyEmpty(serviceUrl, accessToken, apiConfig.getProjectId());
         if (invalid) {
             return ResolveResult.fail("invalid apifox config");
         }
         String projectId = apiConfig.getProjectId();
 
-        String url = apiConfig.getServiceUrl() + String.format(EXPORT_PATH, projectId);
+        String url = serviceUrl + String.format(EXPORT_PATH, projectId);
         ExportRequest request = new ExportRequest();
         byte[] body = JsonUtils.toJson(request).getBytes(StandardCharsets.UTF_8);
         Map<String, String> headers = new HashMap<>();
         headers.put("X-Apifox-Api-Version", "2024-03-28");
         headers.put("Content-Type", "application/json");
-        headers.put("Authorization", "Bearer " + apiConfig.getAccessToken());
+        headers.put("Authorization", "Bearer " + accessToken);
         try {
             byte[] data = HttpUtils.post(url, body, headers, Duration.ofSeconds(10));
             return ResolveResult.ok(new String(data, StandardCharsets.UTF_8));
