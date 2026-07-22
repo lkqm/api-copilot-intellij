@@ -1,11 +1,3 @@
-import proguard.gradle.ProGuardTask
-
-buildscript {
-    dependencies {
-        classpath 'com.guardsquare:proguard-gradle:7.7.0'
-    }
-}
-
 plugins {
     id 'org.jetbrains.intellij' version '1.17.0'
 }
@@ -59,27 +51,4 @@ patchPluginXml {
 
 test {
     useJUnitPlatform()
-}
-
-// proguard to obfuscates code
-def proguardOutputJar = layout.buildDirectory.file("libs/$name-$version-proguard.jar")
-tasks.register('proguard', ProGuardTask) {
-    dependsOn tasks.jar
-    configuration file('proguard.pro')
-    injars tasks.jar.archiveFile.get().asFile
-    outjars proguardOutputJar
-
-    if (System.getProperty('java.version').startsWith('1.')) {
-        libraryjars "${System.getProperty('java.home')}/lib/rt.jar"
-    } else {
-        libraryjars "${System.getProperty('java.home')}/jmods/java.base.jmod", jarfilter: '!**.jar', filter: '!module-info.class'
-        libraryjars "${System.getProperty('java.home')}/jmods/java.desktop.jmod", jarfilter: '!**.jar', filter: '!module-info.class'
-        libraryjars "${System.getProperty('java.home')}/jmods/java.datatransfer.jmod", jarfilter: '!**.jar', filter: '!module-info.class'
-    }
-    libraryjars configurations.compileClasspath
-}
-
-buildPlugin {
-    dependsOn proguard
-    from(proguardOutputJar)
 }
