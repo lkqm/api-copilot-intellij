@@ -974,14 +974,14 @@ public class ApiViewPreviewPane extends JPanel implements Disposable {
     private static JPanel buildRow(String name, boolean required, boolean deprecated,
                                    String type, String desc, int depth) {
         JPanel row = baseRow(depth);
-        row.add(Box.createHorizontalStrut(JBUI.scale(16)));
+        row.setBorder(JBUI.Borders.empty(2, depth * 16 + 16, 2, 0));
         addRowContent(row, name, required, deprecated, type, desc);
         return row;
     }
 
 private static JPanel baseRow(int depth) {
         JPanel row = new JPanel();
-        row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
+        row.setLayout(new GridBagLayout());
         row.setAlignmentX(LEFT_ALIGNMENT);
         row.setOpaque(false);
         row.setBorder(JBUI.Borders.empty(2, depth * 16, 2, 0));
@@ -1025,15 +1025,19 @@ private static JPanel baseRow(int depth) {
 
     private static DashedUnderlineLabel addRowContent(JPanel row, String name, boolean required,
                                          boolean deprecated, String type, String desc) {
+        JPanel left = new JPanel();
+        left.setLayout(new BoxLayout(left, BoxLayout.X_AXIS));
+        left.setOpaque(false);
+
         // Name — clickable, copies field name to clipboard
         DashedUnderlineLabel nameLabel = makeCopyableNameLabel(name, deprecated);
-        row.add(nameLabel);
-        row.add(Box.createHorizontalStrut(JBUI.scale(6)));
+        left.add(nameLabel);
+        left.add(Box.createHorizontalStrut(JBUI.scale(6)));
 
         // Type chip
         if (type != null && !type.isEmpty()) {
-            row.add(new TypeChip(type));
-            row.add(Box.createHorizontalStrut(JBUI.scale(5)));
+            left.add(new TypeChip(type));
+            left.add(Box.createHorizontalStrut(JBUI.scale(5)));
         }
 
         // Required marker
@@ -1044,21 +1048,36 @@ private static JPanel baseRow(int depth) {
             req.setPreferredSize(new Dimension(JBUI.scale(10), JBUI.scale(20)));
             req.setMinimumSize(req.getPreferredSize());
             req.setMaximumSize(req.getPreferredSize());
-            row.add(req);
-            row.add(Box.createHorizontalStrut(JBUI.scale(6)));
+            left.add(req);
+            left.add(Box.createHorizontalStrut(JBUI.scale(6)));
         } else {
-            row.add(Box.createHorizontalStrut(JBUI.scale(16)));
+            left.add(Box.createHorizontalStrut(JBUI.scale(16)));
         }
 
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.WEST;
+        row.add(left, gbc);
+
         // Description — flexible, tooltip shows full text
+        Component description = Box.createHorizontalGlue();
         if (desc != null && !desc.isEmpty()) {
             JBLabel dl = new JBLabel(desc);
             dl.setForeground(UIManager.getColor("Label.disabledForeground"));
             dl.setToolTipText(desc);
-            row.add(dl);
+            description = dl;
         }
 
-        row.add(Box.createHorizontalGlue());
+        gbc = new GridBagConstraints();
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.WEST;
+        row.add(description, gbc);
         return nameLabel;
     }
 
@@ -1352,7 +1371,7 @@ private static JPanel baseRow(int depth) {
 
             // Field row
             JPanel topRow = new JPanel();
-            topRow.setLayout(new BoxLayout(topRow, BoxLayout.X_AXIS));
+            topRow.setLayout(new GridBagLayout());
             topRow.setOpaque(false);
             topRow.setBorder(JBUI.Borders.empty(2, 0, 2, 8));
             DashedUnderlineLabel nameLabel = (DashedUnderlineLabel) addRowContent(topRow, data.name, data.required, data.deprecated, data.type, data.desc);
