@@ -38,6 +38,7 @@ public class ConnectionsConfigurable implements SearchableConfigurable {
             DocumentSourceType.Apifox
     };
     private static DocumentSourceType typeToSelectOnOpen = DocumentSourceType.OpenAPI;
+    private static boolean createConnectionOnOpen;
 
     private final ConnectionRepository repository = ConnectionRepository.getInstance();
     private final Map<DocumentSourceType, ConnectionPanel> panels = new EnumMap<>(DocumentSourceType.class);
@@ -64,8 +65,6 @@ public class ConnectionsConfigurable implements SearchableConfigurable {
             tabs.addTab(tabTitle(type), panel);
         }
         tabs.setSelectedIndex(tabIndex(typeToSelectOnOpen));
-        typeToSelectOnOpen = DocumentSourceType.OpenAPI;
-        reset();
         return tabs;
     }
 
@@ -114,6 +113,12 @@ public class ConnectionsConfigurable implements SearchableConfigurable {
             panel.setConnections(new ArrayList<>(repository.list(type)));
         }
         modified = false;
+        ConnectionPanel selectedPanel = panels.get(typeToSelectOnOpen);
+        if (createConnectionOnOpen && selectedPanel != null && selectedPanel.isEmpty()) {
+            selectedPanel.addConnection();
+        }
+        typeToSelectOnOpen = DocumentSourceType.OpenAPI;
+        createConnectionOnOpen = false;
     }
 
     @Override
@@ -134,7 +139,12 @@ public class ConnectionsConfigurable implements SearchableConfigurable {
     }
 
     public static void selectTypeOnNextOpen(DocumentSourceType type) {
+        selectTypeOnNextOpen(type, false);
+    }
+
+    public static void selectTypeOnNextOpen(DocumentSourceType type, boolean createIfEmpty) {
         typeToSelectOnOpen = type != null ? type : DocumentSourceType.OpenAPI;
+        createConnectionOnOpen = createIfEmpty;
     }
 
     private static int tabIndex(DocumentSourceType type) {
@@ -211,6 +221,10 @@ public class ConnectionsConfigurable implements SearchableConfigurable {
 
         List<Connection> getConnections() {
             return connections;
+        }
+
+        boolean isEmpty() {
+            return connections.isEmpty();
         }
 
         void setConnections(List<Connection> values) {

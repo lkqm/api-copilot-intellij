@@ -45,7 +45,7 @@ public class OpenApiDocumentEditForm implements DocumentEditForm {
                 openApiFileField.getPreferredSize().width,
                 authPanel.getPreferredSize().height));
         manageAuthButton.addActionListener(e -> {
-            ConnectionsConfigurable.selectTypeOnNextOpen(DocumentSourceType.OpenAPI);
+            ConnectionsConfigurable.selectTypeOnNextOpen(DocumentSourceType.OpenAPI, true);
             ShowSettingsUtil.getInstance().showSettingsDialog(null, ConnectionsConfigurable.class);
             reloadAuth(getSelectedConnectionId());
         });

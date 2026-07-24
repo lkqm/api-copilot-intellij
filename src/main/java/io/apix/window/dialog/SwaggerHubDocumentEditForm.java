@@ -45,7 +45,7 @@ public class SwaggerHubDocumentEditForm implements DocumentEditForm {
     public SwaggerHubDocumentEditForm() {
         connectionComboBox.setPrototypeDisplayValue(ConnectionItem.widthPrototype());
         manageConnectionsButton.addActionListener(e -> {
-            ConnectionsConfigurable.selectTypeOnNextOpen(DocumentSourceType.SwaggerHub);
+            ConnectionsConfigurable.selectTypeOnNextOpen(DocumentSourceType.SwaggerHub, true);
             ShowSettingsUtil.getInstance().showSettingsDialog(null, ConnectionsConfigurable.class);
             reloadConnections(getSelectedConnectionId());
         });

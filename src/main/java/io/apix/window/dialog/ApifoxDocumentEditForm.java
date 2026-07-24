@@ -43,7 +43,7 @@ public class ApifoxDocumentEditForm implements DocumentEditForm {
     public ApifoxDocumentEditForm() {
         connectionComboBox.setPrototypeDisplayValue(ConnectionItem.widthPrototype());
         manageConnectionsButton.addActionListener(e -> {
-            ConnectionsConfigurable.selectTypeOnNextOpen(DocumentSourceType.Apifox);
+            ConnectionsConfigurable.selectTypeOnNextOpen(DocumentSourceType.Apifox, true);
             ShowSettingsUtil.getInstance().showSettingsDialog(null, ConnectionsConfigurable.class);
             reloadConnections(getSelectedConnectionId());
         });
